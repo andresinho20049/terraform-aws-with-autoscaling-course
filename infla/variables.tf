@@ -164,13 +164,13 @@ variable "user_data_script" {
 variable "desired_capacity" {
   description = "The number of EC2 instances that should be running in the Auto Scaling Group."
   type        = number
-  default     = var.min_size
+  default     = 2
 }
 
 variable "min_size" {
   description = "The minimum number of EC2 instances in the Auto Scaling Group."
   type        = number
-  default     = 1
+  default     = 2
   validation {
     condition     = var.min_size <= var.desired_capacity && var.min_size >= 1
     error_message = "The minimum size must be at least 1."
@@ -180,7 +180,7 @@ variable "min_size" {
 variable "max_size" {
   description = "The maximum number of EC2 instances in the Auto Scaling Group."
   type        = number
-  default     = 3
+  default     = 6
   validation {
     condition     = var.max_size >= var.desired_capacity && var.max_size >= var.min_size
     error_message = "The maximum size must be greater than or equal to the desired capacity and minimum size."
