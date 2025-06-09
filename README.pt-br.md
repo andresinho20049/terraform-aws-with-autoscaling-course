@@ -8,12 +8,12 @@ O projeto é estruturado em módulos para promover a modularidade, reusabilidade
 Para suportar **múltiplos ambientes** (como `dev`, `prod`, `staging`), o projeto utiliza uma estrutura de pastas para arquivos `.tfvars`:
 
 ```
+.env
 infla/
-├── .env
 ├── main.tf
 ├── modules/
-│   ├── vpc-module/
-│   └── loadbalancer-module/
+│   ├── vpc/
+│   └── alb/
 └── envs/
     ├── dev/
     │   └── terraform.tfvars
@@ -61,7 +61,6 @@ Responsável por configurar o balanceamento de carga e a escalabilidade automát
 * **Application Load Balancer (ALB):** Distribui o tráfego de entrada entre múltiplas instâncias.
 * **Target Group:** Grupo de instâncias EC2 que o ALB direcionará o tráfego.
 * **Launch Template:** Define a configuração de instâncias EC2 a serem lançadas.
-    * A **AMI (`aws linux2`)** e outras configurações de instância serão definidas via arquivos `tfvars`.
 * **Auto Scaling Group (ASG):** Garante que um número específico de instâncias EC2 esteja sempre em execução, escalando automaticamente para cima ou para baixo conforme a demanda.
 
 ### `main.tf`
@@ -118,33 +117,22 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
 
 1.  **Clone o Repositório:**
     ```bash
-    git clone <URL_DO_SEU_REPOSITORIO>
-    cd <NOME_DO_REPOSITORIO>
+    git clone https://github.com/andresinho20049/terraform-aws-with-autoscaling-course
+    cd terraform-aws-with-autoscaling-course
     ```
 
-2.  **Crie o arquivo `.env`:**
-    Este arquivo conterá as variáveis de ambiente necessárias para o backend do Terraform e outras configurações globais. Crie um arquivo chamado `.env` na raiz do projeto com o seguinte conteúdo, substituindo os valores pelos seus:
-
-    ```bash
-    # Variáveis para o backend S3 do Terraform
-    TF_BACKEND_BUCKET="seu-bucket-s3-terraform-state"
-    TF_BACKEND_KEY="nome-do-seu-repositorio" # Usado como chave para o estado do Terraform
-    TF_BACKEND_REGION="us-east-1" # Região do seu bucket S3 de backend
-    TF_AWS_LOCK_DYNAMODB_TABLE="sua-tabela-dynamodb-lock" # Tabela DynamoDB para bloqueio de estado
-
-    # Variáveis gerais para o Terraform
-    USERNAME="seu_usuario" # Seu nome de usuário para nomenclatura de recursos
-    AWS_REGION="us-east-1" # Região padrão para provisionamento
-    ENVIRONMENT="dev" # Ambiente atual (dev, prod, staging, etc.)
-    ```
+2.  **Renomeie o arquivo `.env.example` para `.env`:**
+    Este arquivo conterá as variáveis de ambiente necessárias para o backend do Terraform e outras configurações globais. 
+    > Lembre-se de Substituir os valores de exemplo pelo seus
 
 ### 2. Execução do Terraform
 
 1.  **Carregue as Variáveis de Ambiente:**
-    Antes de executar qualquer comando Terraform, carregue as variáveis do arquivo `.env` para a sua sessão shell.
+    Antes de executar qualquer comando Terraform, carregue as variáveis do arquivo `.env` para a sua sessão shell e então entre na pasta `infla`.
 
     ```bash
     source .env
+    cd infla
     ```
 
 2.  **Inicialize o Terraform:**
@@ -172,7 +160,7 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
     terraform plan \
       -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
       -var="account_username=$USERNAME" \
-      -var="region=$AWS_REGION" \
+      -var="project=$TF_BACKEND_KEY" \
       -out="$ENVIRONMENT.plan"
     ```
 
@@ -190,7 +178,7 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
     terraform destroy \
       -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
       -var="account_username=$USERNAME" \
-      -var="region=$AWS_REGION"
+      -var="project=$TF_BACKEND_KEY"
     ```
 
 ## Multi-Regiões e Peering
