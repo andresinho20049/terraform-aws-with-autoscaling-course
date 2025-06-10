@@ -4,7 +4,7 @@ module "main_vpc" {
   source               = "./modules/vpc"
 
   vpc_name             = var.vpc_name
-  vpc_cidr_block       = "${var.vpc_cidr_block}"
+  vpc_cidr_block       = var.vpc_cidr_block
   public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
   public_azs           = var.public_azs
@@ -50,5 +50,5 @@ module "web_alb" {
   environment      = var.environment
   project          = var.project
 
-  depends_on = [ module.vpc-module ]
+  depends_on = [ module.main_vpc ]
 }
