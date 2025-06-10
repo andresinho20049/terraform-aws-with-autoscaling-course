@@ -84,9 +84,14 @@ variable "health_check_path" {
 }
 
 # --- Launch Template Specific Variables ---
-variable "ami_id" {
-  description = "The ID of the AMI to use for EC2 instances (e.g., AWS Linux 2)."
+variable "ami_name_base_prefix" {
+  description = "The base prefix for the AMI name used in the launch template (e.g., 'nginx-webserver-amzn2')."
   type        = string
+  validation {
+    condition     = length(var.ami_name_base_prefix) > 0
+    error_message = "The AMI name base prefix cannot be empty."
+  }
+  default     = "nginx-webserver-amzn2"
 }
 
 variable "instance_type" {

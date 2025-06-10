@@ -1,7 +1,22 @@
+data "aws_ami" "packer_ami" {
+  most_recent = true # Get the most recent AMI that matches the filter criteria
+  owners      = ["self"] # Find AMIs owned by the current account
+
+  filter {
+    name   = "name"
+    values = ["${var.ami_name_base_prefix}-${var.environment}-*"]
+  }
+
+  tags = {
+    ManagedBy   = "Packer"
+    Environment = var.environment # Filter by environment
+  }
+}
+
 # --- Launch Template ---
 resource "aws_launch_template" "lt_web" {
   name   = "${var.account_username}.${var.region}.lt.${var.environment}"
-  image_id      = var.ami_id
+  image_id      = data.aws_ami.packer_ami.id
   instance_type = var.instance_type
   key_name      = var.key_name # Can be empty if no key pair is desired
 
@@ -10,7 +25,7 @@ resource "aws_launch_template" "lt_web" {
     security_groups             = [var.private_sg_id] # Instances use the private SG
   }
 
-  user_data = var.user_data_script # Base64 encoded user data script
+  # user_data = var.user_data_script # Base64 encoded user data script
 
   block_device_mappings {
     device_name = "/dev/xvda" # Adjust based on AMI, common for Linux

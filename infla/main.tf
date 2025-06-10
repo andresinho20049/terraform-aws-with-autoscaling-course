@@ -35,10 +35,10 @@ module "web_alb" {
   health_check_path    = var.health_check_path
   
   # Launch Template configuration
-  ami_id               = var.ami_id 
+  ami_name_base_prefix = var.ami_name_base_prefix
   instance_type        = var.instance_type 
   key_name             = var.key_name
-  user_data_script     = filebase64("./envs/${var.environment}/start_script.sh") 
+  # user_data_script     = filebase64("./envs/${var.environment}/start_script.sh") 
 
   # Auto Scaling Group configuration
   desired_capacity     = var.desired_capacity

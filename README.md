@@ -156,29 +156,44 @@ This ensures that the Terraform state is stored separately for each environment 
 
 ## How to Use
 ### 1. Preparing the Environment
-
-1. **Clone the Repository:**
+1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/andresinho20049/terraform-aws-with-autoscaling-course
     cd terraform-aws-with-autoscaling-course
     ```
 
-2. **Rename the `.env.example` file to `.env`:**
+2.  **Rename the `.env.example` file to `.env`:**
     This file will contain the environment variables needed for the Terraform backend and other global configurations.
-    > Remember to Replace the example values ​​with your own
+    > Remember to Replace the example values ​​conforme their own
 
-### 2. Running Terraform
-
-1. **Load the Environment Variables:**
-    Before running any Terraform commands, load the variables from the `.env` file into your shell session and then enter the `infla` folder.
+3.  **Load the Environment Variables:**
+    Before running any Terraform commands, load the variables from the `.env` file into your shell session.
 
     ```bash
     source .env
-    cd infla
     ```
 
-2. **Initialize Terraform:**
+### 2. Running Packer
+
+1.  **Build AMI with Packer:**
+    Navigate to the Packer template directory and build the AMI for your environment. This will create the necessary machine image for your EC2 instances.
+
+    ```bash
+    cd packer/ami-templates/nginx-webserver/
+    packer init .
+    packer build \
+        -var-file="../../envs/$ENVIRONMENT/$ENVIRONMENT.pkrvars.hcl" .
+    
+    # Navigate back to the 'infla' directory for Terraform commands
+    cd ../../../infla 
+    ```
+
+### 3. Running Terraform
+
+1.  **Initialize Terraform:**
     This command configures the S3 backend for Terraform state management.
+
+    > check if your current directory is `infra`
 
     ```bash
     terraform init \
@@ -188,14 +203,14 @@ This ensures that the Terraform state is stored separately for each environment 
         -backend-config="dynamodb_table=$TF_AWS_LOCK_DYNAMODB_TABLE"
     ```
 
-3. **Select or Create Workspace:**
+2.  **Select or Create Workspace:**
     Define the environment for which you want to provision infrastructure. Make sure the value of `$ENVIRONMENT` matches one of the folders in `envs/`.
 
     ```bash
     terraform workspace select $ENVIRONMENT || terraform workspace new $ENVIRONMENT
     ```
 
-4. **Plan Infrastructure:**
+3.  **Plan Infrastructure:**
     This command generates an execution plan, showing which resources will be created, modified, or destroyed. It uses the `.tfvars` file specific to the selected environment.
 
     ```bash
@@ -208,15 +223,15 @@ This ensures that the Terraform state is stored separately for each environment 
         -out="./plan/$ENVIRONMENT.plan"
     ```
 
-5. **Apply Infrastructure:**
+4.  **Apply Infrastructure:**
     Execute the generated plan to provision the resources in AWS.
 
     ```bash
     terraform apply "./plan/$ENVIRONMENT.plan"
     ```
 
-6. **Destroy Infrastructure (when no longer needed):**
-To remove all provisioned resources, use the `destroy` command. **Caution:** This is irreversible!
+5.  **Destroy Infrastructure (when no longer needed):**
+    To remove all provisioned resources, use the `destroy` command.
 
     ```bash
     terraform destroy \
@@ -225,6 +240,7 @@ To remove all provisioned resources, use the `destroy` command. **Caution:** Thi
         -var="project=$TF_BACKEND_KEY" \
         -var="key_name=$SSH_KEY_NAME"
     ```
+
 
 ## Multi-Region and Peering
 The project is prepared to provision resources in multiple regions and perform VPC peering. The `10.0.0.0/16` and `10.1.0.0/16` networks are examples of distinct CIDR blocks that can be used for VPCs in different regions to facilitate peering configuration. The actual peering implementation will be added in a later phase, but the foundation for it is present in the network block definition and environment variables.

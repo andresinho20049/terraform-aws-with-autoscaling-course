@@ -19,7 +19,7 @@ target_group_protocol = "HTTP"       # Protocol for target group health checks a
 health_check_path    = "/"           # Path for ALB health checks
 
 # --- EC2 Instance / Launch Template Variables ---
-ami_id               = "ami-04ea3e4837f49e840" 
+ami_name_base_prefix = "nginx-webserver-amzn2"  # Base prefix for the AMI name 
 instance_type        = "t2.micro"
 
 # --- Auto Scaling Group Variables ---

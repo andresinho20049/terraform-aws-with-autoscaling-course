@@ -149,53 +149,69 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
 ## Requisitos
 
 * Terraform CLI instalado.
+* Packer CLI instalado
 * Credenciais AWS configuradas (via variáveis de ambiente, arquivo de credenciais, ou perfil AWS).
 * Bucket S3 configurado para o backend de estado.
 * Tabela DynamoDB configurada para o bloqueio de estado.
 
 ## Como Usar
-### 1. Preparação do Ambiente
-
-1.  **Clone o Repositório:**
+### 1. Preparando o Ambiente
+1. **Clone o Repositório:**
     ```bash
     git clone https://github.com/andresinho20049/terraform-aws-with-autoscaling-course
     cd terraform-aws-with-autoscaling-course
     ```
 
-2.  **Renomeie o arquivo `.env.example` para `.env`:**
-    Este arquivo conterá as variáveis de ambiente necessárias para o backend do Terraform e outras configurações globais. 
-    > Lembre-se de Substituir os valores de exemplo pelo seus
+2. **Renomeie o arquivo `.env.example` para `.env`:**
+    Este arquivo conterá as variáveis ​​de ambiente necessárias para o backend do Terraform e outras configurações globais.
+    > Lembre-se de substituir os valores de exemplo pelos seus próprios.
 
-### 2. Execução do Terraform
-
-1.  **Carregue as Variáveis de Ambiente:**
-    Antes de executar qualquer comando Terraform, carregue as variáveis do arquivo `.env` para a sua sessão shell e então entre na pasta `infla`.
+3. **Carregue as Variáveis ​​de Ambiente:**
+    Antes de executar qualquer comando do Terraform, carregue as variáveis ​​do arquivo `.env` na sua sessão de shell.
 
     ```bash
     source .env
-    cd infla
     ```
 
-2.  **Inicialize o Terraform:**
-    Este comando configura o backend S3 para o gerenciamento do estado do Terraform.
+### 2. Executando o Packer
+
+1. **Construindo a AMI com o Packer:**
+    Navegue até o diretório de modelos do Packer e construa a AMI para o seu ambiente. Isso criará a imagem de máquina necessária para suas instâncias EC2.
+
+    ```bash
+    cd packer/ami-templates/nginx-webserver/
+    packer init .
+    packer build \
+        -var-file="../../envs/$ENVIRONMENT/$ENVIRONMENT.pkrvars.hcl" .
+    
+    # Navigate back to the 'infla' directory for Terraform commands
+    cd ../../../infla 
+    ```
+
+### 3. Executando o Terraform
+
+1. **Inicializar o Terraform:**
+    Este comando configura o backend S3 para o gerenciamento de estado do Terraform.
+
+    > verifique se o seu diretório atual é `infra`
 
     ```bash
     terraform init \
-      -backend-config="bucket=$TF_BACKEND_BUCKET" \
-      -backend-config="key=$TF_BACKEND_KEY" \
-      -backend-config="region=$TF_BACKEND_REGION" \
-      -backend-config="dynamodb_table=$TF_AWS_LOCK_DYNAMODB_TABLE"
+        -backend-config="bucket=$TF_BACKEND_BUCKET" \
+        -backend-config="key=$TF_BACKEND_KEY" \
+        -backend-config="region=$TF_BACKEND_REGION" \
+        -backend-config="dynamodb_table=$TF_AWS_LOCK_DYNAMODB_TABLE"
     ```
 
-3.  **Selecione ou Crie o Workspace:**
-    Defina o ambiente para o qual você deseja provisionar a infraestrutura. Certifique-se de que o valor de `$ENVIRONMENT` corresponda a uma das pastas em `envs/`.
+2. **Selecionar ou Criar Espaço de Trabalho:**
+    Defina o ambiente para o qual deseja provisionar a infraestrutura. Certifique-se de que o valor de `$ENVIRONMENT` corresponda a uma das pastas em `envs/`.
 
     ```bash
     terraform workspace select $ENVIRONMENT || terraform workspace new $ENVIRONMENT
     ```
 
-4.  **Planeje a Infraestrutura:**
-    Este comando gera um plano de execução, mostrando quais recursos serão criados, modificados ou destruídos. Ele utiliza o arquivo `.tfvars` específico do ambiente selecionado.
+3. **Planejar Infraestrutura:**
+    Este comando gera um plano de execução, mostrando quais recursos serão criados, modificados ou destruídos. Ele utiliza o arquivo `.tfvars` específico para o ambiente selecionado.
 
     ```bash
     mkdir -p plan
@@ -207,22 +223,22 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
         -out="./plan/$ENVIRONMENT.plan"
     ```
 
-5.  **Aplique a Infraestrutura:**
+4. **Aplicar Infraestrutura:**
     Execute o plano gerado para provisionar os recursos na AWS.
 
     ```bash
     terraform apply "./plan/$ENVIRONMENT.plan"
     ```
 
-6.  **Destrua a Infraestrutura (quando não for mais necessária):**
-    Para remover todos os recursos provisionados, use o comando `destroy`. **Cuidado:** Isso é irreversível!
+5. **Destruir Infraestrutura (quando não for mais necessária):**
+    Para remover todos os recursos provisionados, use o comando `destroy`.
 
     ```bash
-    terraform destroy \
+    terraform destruir \
         -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
-        -var="account_username=$USERNAME" \
-        -var="project=$TF_BACKEND_KEY" \
-        -var="key_name=$SSH_KEY_NAME"
+        -var="nome_de_usuário_da_conta=$USERNAME" \
+        -var="projeto=$TF_BACKEND_KEY" \
+        -var="nome_da_chave=$SSH_KEY_NAME"
     ```
 
 ## Multi-Regiões e Peering
