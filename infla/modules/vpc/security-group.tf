@@ -72,5 +72,5 @@ resource "aws_security_group" "sg_private" {
     region      = var.region
   }
 
-  depends_on = [ aws_vpc.my_vpc ]
+  depends_on = [ aws_vpc.my_vpc, aws_security_group.sg_public ]
 }
