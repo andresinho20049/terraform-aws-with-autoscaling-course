@@ -158,18 +158,20 @@ This ensures that the Terraform state is stored separately for each environment 
     This command generates an execution plan, showing which resources will be created, modified, or destroyed. It uses the `.tfvars` file specific to the selected environment.
 
     ```bash
+    mkdir -p plan
     terraform plan \
         -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
         -var="account_username=$USERNAME" \
         -var="project=$TF_BACKEND_KEY" \
-        -out="$ENVIRONMENT.plan"
+        -var="key_name=$SSH_KEY_NAME" \
+        -out="./plan/$ENVIRONMENT.plan"
     ```
 
 5. **Apply Infrastructure:**
     Execute the generated plan to provision the resources in AWS.
 
     ```bash
-    terraform apply "$ENVIRONMENT.plan"
+    terraform apply "./plan/$ENVIRONMENT.plan"
     ```
 
 6. **Destroy Infrastructure (when no longer needed):**
@@ -179,7 +181,8 @@ To remove all provisioned resources, use the `destroy` command. **Caution:** Thi
     terraform destroy \
         -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
         -var="account_username=$USERNAME" \
-        -var="project=$TF_BACKEND_KEY"
+        -var="project=$TF_BACKEND_KEY" \
+        -var="key_name=$SSH_KEY_NAME"
     ```
 
 ## Multi-Region and Peering
