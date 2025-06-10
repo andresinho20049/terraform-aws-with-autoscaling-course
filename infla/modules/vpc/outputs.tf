@@ -4,6 +4,11 @@ output "vpc_id" {
   value       = aws_vpc.my_vpc.id
 }
 
+output "vpc_name" {
+  description = "The name of the VPC."
+  value       = aws_vpc.my_vpc.tags["Name"]
+}
+
 output "public_subnet_ids" {
   description = "A list of IDs for the public subnets."
   value       = [for s in aws_subnet.sub_public : s.id]
