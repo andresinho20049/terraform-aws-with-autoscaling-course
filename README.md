@@ -8,19 +8,60 @@ The project is structured into **modules** to promote modularity, reusability, a
 To support **multiple environments** (such as `dev`, `prod`, `staging`), the project uses a folder structure for `.tfvars` files:
 
 ```
-.env
-infla/
-├── main.tf
-├── modules/
-│   ├── vpc/
-│   └── alb/
-└── envs/
-    ├── dev/
-    │   └── terraform.tfvars
-    └── prod/
-        └── terraform.tfvars
-    └── staging/
-        └── terraform.tfvars
+.
+├── .env                    
+├── .env.example            
+├── README.md               
+├── README.pt-br.md         
+├── .gitignore              
+│
+├── src/                    
+│
+├── packer/                 
+│   ├── README.md           
+│   ├── envs/               
+│   │   ├── dev/
+│   │   │   └── dev.pkrvars.hcl
+│   │   ├── prod/
+│   │   │   └── prod.pkrvars.hcl
+│   │   └── staging/
+│   │       └── staging.pkrvars.hcl
+│   │
+│   ├── ami-templates/      
+│   │   ├── nginx-webserver/ 
+│   │   │   ├── build.pkr.hcl     
+│   │   │   ├── source.pkr.hcl    
+│   │   │   └── variables.pkr.hcl 
+│   │   │   └── scripts/          
+│   │   │       └── install_nginx.sh 
+│   │   │
+│   │   └── my-app-worker/  
+│   │       ├── ...
+│   │
+│   └── output_ami_ids.tfvars 
+│
+├── infla/                  
+│   ├── main.tf             
+│   ├── variable.tf         
+│   ├── provider.tf         
+│   ├── output.tf           
+│   ├── backend.tf          
+│   │
+│   ├── modules/            
+│   │   ├── vpc/
+│   │   ├── alb/
+│   │   └── ...             
+│   │
+│   └── envs/               
+│       ├── dev/
+│       │   |── terraform.tfvars 
+│       │   └── ...
+│       ├── prod/
+│       │   └── terraform.tfvars 
+│       └── staging/
+│           └── terraform.tfvars
+│
+└── scripts/                
 ```
 
 Each environment folder (`dev`, `prod`, `staging`, etc.) contains a `terraform.tfvars` file with specific configurations for that environment, such as VPC CIDR blocks, AMI IDs, and instance types.
