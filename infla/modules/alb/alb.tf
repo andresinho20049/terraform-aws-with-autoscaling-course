@@ -1,6 +1,6 @@
 # --- Application Load Balancer (ALB) ---
 resource "aws_lb" "alb" {
-  name               = "${var.account_username}.${var.region}.alb.${var.alb_name_suffix}.${var.environment}"
+  name               = "${var.alb_name_suffix}-${var.environment}"
   internal           = false # Publicly accessible ALB
   load_balancer_type = "application"
   security_groups    = [var.public_sg_id] # ALB uses the public SG
@@ -16,7 +16,7 @@ resource "aws_lb" "alb" {
 
 # --- Target Group ---
 resource "aws_lb_target_group" "alb_tg" {
-  name        = "${var.account_username}.${var.region}.${var.alb_name_suffix}.tg.${var.environment}"
+  name        = "${var.alb_name_suffix}-tg-${var.environment}"
   port        = var.target_group_port
   protocol    = var.target_group_protocol
   vpc_id      = var.vpc_id
