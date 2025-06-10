@@ -14,25 +14,6 @@ variable "project" {
   description = "Project name for resource tagging."
 }
 
-
-# --- Backend Configuration Variables ---
-variable "tf_backend_bucket" {
-  description = "S3 bucket for Terraform state."
-}
-
-variable "tf_backend_key" {
-  description = "S3 key for Terraform state file."
-}
-
-variable "tf_backend_region" {
-  description = "Region for the S3 backend bucket."
-}
-
-variable "tf_aws_lock_dynamodb_table" {
-  description = "DynamoDB table for state locking."
-}
-
-
 # --- VPC Specific Variables ---
 variable "vpc_name" {
   description = "A unique name suffix for this VPC (e.g., 'main', 'peering-target')."
