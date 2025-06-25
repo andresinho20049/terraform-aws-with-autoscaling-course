@@ -16,6 +16,22 @@ module "main_vpc" {
   project              = var.project
 }
 
+module "efs" {
+  source = "./modules/efs"
+
+  # Pass outputs from the main_vpc module as inputs
+  vpc_id              = module.main_vpc.vpc_id
+  private_subnet_ids  = module.main_vpc.private_subnet_ids
+  private_sg_id       = module.main_vpc.private_security_group_id
+
+  account_username = var.account_username
+  region              = var.region
+  environment         = var.environment
+  project             = var.project
+
+  depends_on = [ module.main_vpc ]
+}
+
 module "web_alb" {
   source = "./modules/alb"
 
@@ -25,6 +41,10 @@ module "web_alb" {
   private_subnet_ids  = module.main_vpc.private_subnet_ids
   public_sg_id        = module.main_vpc.public_security_group_id
   private_sg_id       = module.main_vpc.private_security_group_id 
+
+  # Pass outputs from the efs module as inputs
+  efs_id              = module.efs.efs_file_system_id
+  efs_sg_id           = module.efs.efs_security_group_id
 
   # ALB & Target Group configuration
   alb_name_suffix      = var.alb_name_suffix
@@ -50,5 +70,5 @@ module "web_alb" {
   environment      = var.environment
   project          = var.project
 
-  depends_on = [ module.main_vpc ]
+  depends_on = [ module.main_vpc, module.efs ]
 }

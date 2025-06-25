@@ -45,6 +45,17 @@ variable "private_sg_id" {
   type        = string
 }
 
+# --- ALB Security Group Variables ---
+variable "efs_id" {
+  description = "The ID of the EFS file system to be mounted on the instances."
+  type        = string
+}
+
+variable "efs_sg_id" {
+  description = "The ID of the security group for the ALB."
+  type        = string
+}
+
 # --- ALB Specific Variables ---
 variable "alb_name_suffix" {
   description = "A suffix for the ALB name (e.g., 'web-app')."

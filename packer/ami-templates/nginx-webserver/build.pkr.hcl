@@ -5,10 +5,13 @@ build {
     inline = [
       "sudo yum update -y",
       "sudo amazon-linux-extras install nginx1 -y",
-      "sudo systemctl enable nginx",
-      "sudo systemctl start nginx",
-      "sudo echo '<h1>Hello from Packer & Terraform in ${var.environment} environment!</h1> <h2>NGINX WebServer</h2>' | sudo tee /usr/share/nginx/html/index.html",
-      "sudo systemctl status nginx"
+      "sudo yum install -y nfs-utils", # Instalar o cliente NFS
+
+      # Build EFS mount point
+      "sudo mkdir -p /mnt/efs",
+      
+      # Not necessary to start Nginx again, as it should already be running
+      "sudo systemctl enable nginx"
     ]
   }
 }

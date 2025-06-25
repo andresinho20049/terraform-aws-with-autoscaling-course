@@ -22,10 +22,15 @@ resource "aws_launch_template" "lt_web" {
 
   network_interfaces {
     associate_public_ip_address = false # Instances in private subnets should NOT have public IPs
-    security_groups             = [var.private_sg_id] # Instances use the private SG
+    security_groups             = [var.private_sg_id, var.efs_sg_id ] # Instances use the private SG
   }
 
-  # user_data = var.user_data_script # Base64 encoded user data script
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    efs_file_system_id = var.efs_id
+    aws_region         = var.region
+    project_name       = var.project
+    environment        = var.environment
+  }))
 
   block_device_mappings {
     device_name = "/dev/xvda" # Adjust based on AMI, common for Linux
