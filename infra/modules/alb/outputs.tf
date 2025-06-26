@@ -23,3 +23,8 @@ output "launch_template_id" {
   description = "The ID of the Launch Template."
   value       = aws_launch_template.lt_web.id
 }
+
+output "ami_data_id" {
+  description = "The AMI ID used in the Launch Template."
+  value       = data.aws_ami.packer_ami.id
+}
