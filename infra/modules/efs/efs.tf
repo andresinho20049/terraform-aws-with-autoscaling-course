@@ -1,6 +1,6 @@
 # --- EFS File System ---
 resource "aws_efs_file_system" "efs_file_system" {
-  creation_token = "${var.account_username}-efs-${var.environment}"
+  creation_token = "${var.account_username}.${var.region}.efs.${var.environment}"
   performance_mode = "generalPurpose" # Free tier eligible
   throughput_mode  = "elastic"
 
@@ -17,7 +17,7 @@ resource "aws_efs_mount_target" "efs_file_system_mount_target" {
   count          = length(var.private_subnet_ids) # Create a mount target for each private subnet
   file_system_id = aws_efs_file_system.efs_file_system.id
   subnet_id      = var.private_subnet_ids[count.index]
-  security_groups = [aws_security_group.efs_sg.id]
+  security_groups = [var.efs_sg_id]
 
-  depends_on = [aws_efs_file_system.efs_file_system, aws_security_group.efs_sg]
+  depends_on = [aws_efs_file_system.efs_file_system]
 }

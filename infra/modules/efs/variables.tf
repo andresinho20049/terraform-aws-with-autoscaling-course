@@ -33,3 +33,13 @@ variable "private_sg_id" {
   description = "The ID of the private security group for ASG instances."
   type        = string
 }
+
+variable "bastion_sg_id" {
+  description = "The ID of the security group for the bastion host."
+  type        = string  
+}
+
+variable "efs_sg_id" {
+  description = "The ID of the security group for the EFS."
+  type        = string
+}

@@ -4,8 +4,7 @@ output "efs_file_system_id" {
   value       = aws_efs_file_system.efs_file_system.id
 }   
 
-# generate output for the EFS security group ID
-output "efs_security_group_id" {
-  description = "The ID of the security group associated with the EFS file system."
-  value       = aws_security_group.efs_sg.id
+output "efs_file_system_arn" {
+  description = "The ARN of the EFS file system created for NGINX content."
+  value       = aws_efs_file_system.efs_file_system.arn
 }
