@@ -40,7 +40,7 @@ resource "aws_security_group" "sg_public" {
 resource "aws_security_group" "sg_private" {
   name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.private.${var.environment}"
   description = "Allow SSH access from within ${var.vpc_name} VPC subnets"
-  vpc_id      = aws_vpc.my_vpc.id # Reference VPC from main.tf
+  vpc_id      = aws_vpc.my_vpc.id
 
   ingress {
     description = "SSH from within VPC CIDR"
@@ -73,4 +73,74 @@ resource "aws_security_group" "sg_private" {
   }
 
   depends_on = [ aws_vpc.my_vpc, aws_security_group.sg_public ]
+}
+
+## --
+
+# Defines a security group for the bastion host, allowing SSH access from specific IPs and NFS access to EFS.
+resource "aws_security_group" "sg_bastion" {
+  name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.bastion.${var.environment}"
+  description = "Allow SSH from trusted IPs and NFS access to EFS"
+  vpc_id      = aws_vpc.my_vpc.id
+
+  # Role to allow SSH access from a specific IP (e.g., your office or home IP)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # 0.0.0.0/0 to allow SSH from anywhere; replace with your specific IP if needed
+    description = "Allow SSH from specific IP"
+  }
+
+  # Role to allow SSM access
+  ingress {
+    from_port   = 2049
+    to_port     = 2049
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # 0.0.0.0/0 to allow SSH from anywhere; replace with your specific IP if needed
+    description = "Allow NFS access from bastion to EFS"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.bastion.${var.environment}"
+    Project     = var.project
+    Environment = var.environment
+  }
+}
+
+# --- EFS Security Group ---
+resource "aws_security_group" "sg_efs" {
+  name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.efs.${var.environment}"
+  description = "Allow NFS traffic to EFS"
+  vpc_id      = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 2049 # NFS port
+    to_port     = 2049
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_private.id, aws_security_group.sg_bastion.id] # Allow access from private subnets and bastion host
+    description = "Allow NFS access from EC2 instances"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = {
+    Name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.efs.${var.environment}"
+    environment = var.environment
+    project     = var.project
+    region      = var.region
+  }
 }
