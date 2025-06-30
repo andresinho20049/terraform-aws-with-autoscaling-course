@@ -34,8 +34,8 @@ usage() {
   exit 1
 }
 
-# Check if an argument is provided
-if [ -z "${1:-}" ]; then
+# Check if an argument is provided or help is requested
+if [ -z "${1:-}" ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   usage
 fi
 
@@ -70,27 +70,27 @@ echo "Environment variables loaded successfully."
 case "$ACTION" in
   apply)
     execute_packer_build "$ENVIRONMENT" "$PROJECT_ROOT"
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$TF_BACKEND_KEY" "$SSH_KEY_NAME" \
+    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   destroy)
-    execute_terraform_destroy "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$TF_BACKEND_KEY" "$SSH_KEY_NAME" \
+    execute_terraform_destroy "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                               "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   up-bastion)
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$TF_BACKEND_KEY" "$SSH_KEY_NAME" \
+    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" true
     ;;
 
   down-bastion)
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$TF_BACKEND_KEY" "$SSH_KEY_NAME" \
+    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   update-efs-file)
-    execute_efs_file_update "$@" "$PROJECT_ROOT" "$ENVIRONMENT" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" \
+    execute_efs_file_update "$@" "$PROJECT_ROOT" "$ENVIRONMENT" "$PROJECT_NAME" "$TF_BACKEND_REGION" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_AWS_LOCK_DYNAMODB_TABLE"
     ;;
 

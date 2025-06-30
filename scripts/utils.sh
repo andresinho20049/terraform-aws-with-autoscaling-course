@@ -100,7 +100,49 @@ get_bastion_instance_id_from_tf() {
         return 1 # Indica falha
     fi
 
-    echo "Found bastion instance ID: $bastion_id"
+    echo "Found bastion instance ID: $bastion_id" >&2
     echo "$bastion_id" 
     return 0 
+}
+
+# Args:
+#   $1: PROJECT_ROOT
+#   $2: ENVIRONMENT
+#   $3: TF_BACKEND_BUCKET
+#   $4: TF_BACKEND_KEY
+#   $5: TF_BACKEND_REGION
+#   $6: TF_AWS_LOCK_DYNAMODB_TABLE
+get_asg_name_from_tf() {
+    local project_root="$1"
+    local env="$2"
+    local bucket="$3"
+    local key="$4"
+    local region="$5"
+    local dynamodb_table="$6"
+    local terraform_dir="${project_root}/infra"
+    local asg_name=""
+
+    asg_name=$(
+        cd "$terraform_dir" || { echo "Erro: Não foi possível navegar para $terraform_dir dentro de get_asg_name_from_tf." >&2; exit 1; }
+
+        # A inicialização é necessária para garantir que o backend e o workspace estejam corretos
+        # antes de tentar ler o output.
+        terraform init -reconfigure -backend-config="bucket=$bucket" -backend-config="key=$key" -backend-config="region=$region" -backend-config="dynamodb_table=$dynamodb_table" -input=false -no-color > /dev/null 2>&1
+
+        if ! terraform workspace select "$env" -no-color > /dev/null 2>&1; then
+            echo "Erro: terraform workspace select $env falhou dentro de get_asg_name_from_tf." >&2
+            exit 1 # Sai do subshell com erro
+        fi
+
+        terraform output -raw autoscaling_group_name 2>/dev/null || echo ""
+    )
+
+    if [ -z "$asg_name" ]; then
+        echo "Erro: Nome do Auto Scaling Group não encontrado nos outputs do Terraform." >&2
+        return 1 # Indica falha
+    fi
+
+    echo "Found Auto Scaling Group name: $asg_name"
+    echo "$asg_name"
+    return 0
 }

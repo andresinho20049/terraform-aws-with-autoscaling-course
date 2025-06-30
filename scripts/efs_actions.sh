@@ -76,34 +76,63 @@ execute_efs_file_update() {
     echo "Local file: $local_file_full_path"
     echo "Target EFS path on bastion: $EFS_TARGET_FULL_PATH"
 
-    # 1. Copy the local file to the EC2 instance's /tmp directory
-    echo "Copying '$local_file_full_path' to '$bastion_id':/tmp/$(basename "$local_file_full_path")..."
-    aws ssm scp "${local_file_full_path}" "${bastion_id}":/tmp/ --region "${region}"
+    # Upload the local file to a temporary S3 bucket
+    local s3_temp_bucket="${USERNAME}.${region}.s3.bhc-temp.${env}"
+    local s3_key="efs-temp/$(basename "$local_file_full_path")-$(date +%s)"
+
+    echo "Uploading local file to temporary S3 bucket: s3://$s3_temp_bucket/$s3_key"
+    aws s3 cp "$local_file_full_path" "s3://$s3_temp_bucket/$s3_key" --region "$region"
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to copy file to bastion instance using ssm scp."
+        echo "Error uploading file to S3."
         exit 1
     fi
 
-    # 2. Execute commands on the bastion instance to move the file to EFS, set permissions, and restart Nginx
-    echo "Moving file to EFS and adjusting permissions/owner on bastion host, then restarting Nginx..."
+    # Check if S3 bucket exists
+    if ! aws s3api head-bucket --bucket "$s3_temp_bucket" --region "$region" 2>/dev/null; then
+        echo "Error: Temporary S3 bucket '$s3_temp_bucket' does not exist. Aborting."
+        exit 1
+    fi
+
+    # Remote command: download from S3, move to EFS, remove from S3
+    local remote_commands_escaped="sudo mkdir -p \\\"$(dirname "$EFS_TARGET_FULL_PATH")\\\"; \\
+        aws s3 cp \\\"s3://$s3_temp_bucket/$s3_key\\\" \\\"/tmp/$(basename "$local_file_full_path")\\\"; \\
+        sudo mv \\\"/tmp/$(basename "$local_file_full_path")\\\" \\\"$EFS_TARGET_FULL_PATH\\\"; \\
+        aws s3 rm \\\"s3://$s3_temp_bucket/$s3_key\\\""
+
+    echo "Running remote commands on bastion to download from S3, move to EFS and clean up S3..."
+
     aws ssm send-command \
         --instance-ids "$bastion_id" \
         --document-name "AWS-RunShellScript" \
-        --parameters "commands=[\
-            \"sudo mkdir -p $(dirname "$EFS_TARGET_FULL_PATH")\", \
-            \"sudo mv /tmp/$(basename "$local_file_full_path") $EFS_TARGET_FULL_PATH\", \
-            \"sudo chmod 644 $EFS_TARGET_FULL_PATH\", \
-            \"sudo chown nginx:nginx $EFS_TARGET_FULL_PATH\", \
-            \"sudo systemctl daemon-reload && sudo systemctl restart nginx\"\
-        ]" \
-        --region "${region}" \
+        --parameters "commands=[\"$remote_commands_escaped\"]" \
+        --region "$region" \
         --output text
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to execute commands on bastion instance via ssm send-command."
+        echo "Error running commands on bastion via SSM."
         exit 1
     fi
 
-    echo "File updated on EFS and Nginx restarted successfully via bastion host."
+    echo "File updated on EFS via bastion host using temporary S3 bucket."
+
+    echo "--- Starting Instance Refresh for the Auto Scaling Group ---"
+    local asg_name=""
+    if ! asg_name=$(get_asg_name_from_tf "$project_root" "$env" "$bucket" "$key" "$region" "$dynamodb_table"); then
+        echo "Critical Error: Could not retrieve Auto Scaling Group name. Skipping instance refresh."
+    else
+        echo "Triggering instance refresh for ASG: $asg_name"
+        # Starts the refresh, keeping at least 50% healthy instances and giving 180 seconds for warmup.
+        aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$asg_name" \
+            --region "$region" \
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 180}'
+        
+        if [ $? -ne 0 ]; then
+            echo "Warning: Failed to start instance refresh for ASG '$asg_name'. Please check AWS console."
+            # Not a fatal error, the file was updated.
+        else
+            echo "Instance refresh started successfully. New instances will be launched to replace old ones."
+        fi
+    fi
 
     # Step 3: Tear down the bastion host after the operation
     echo "Tearing down the bastion host after the operation..."
