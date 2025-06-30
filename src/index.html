@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Cloud Solutions Architect Study Project</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f9fa;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 32px 28px 24px 28px;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-top: 0;
+            text-align: center;
+        }
+        h2 {
+            color: #444;
+            margin-bottom: 0.5em;
+        }
+        .infra {
+            background: #e3f2fd;
+            border-left: 4px solid #1a73e8;
+            padding: 16px 20px;
+            margin: 24px 0 32px 0;
+            border-radius: 6px;
+        }
+        .author {
+            margin-top: 32px;
+            padding-top: 18px;
+            border-top: 1px solid #eee;
+            color: #555;
+        }
+        .author a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .author a:hover {
+            text-decoration: underline;
+        }
+        .lang-link {
+            margin: 24px 0;
+            text-align: center;
+        }
+        .lang-link a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .lang-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AWS Cloud Solutions Architect Study Project</h1>
+        <p>This project is a hands-on study and demonstration of building scalable, modular, and production-ready AWS infrastructure using <strong>Terraform</strong> and <strong>Packer</strong>. The goal is to master best practices for the AWS Solutions Architect certification and real-world cloud deployments.</p>
+        <div class="infra">
+            <h2>Infrastructure Overview</h2>
+            <ul>
+                <li><strong>Multi-Environment Support:</strong> dev, staging, and prod with isolated state and configuration.</li>
+                <li><strong>VPC:</strong> Custom networking with public/private subnets, route tables, and security groups.</li>
+                <li><strong>Elastic File System (EFS):</strong> Shared storage for all application instances.</li>
+                <li><strong>Application Load Balancer (ALB):</strong> Distributes traffic for high availability.</li>
+                <li><strong>Auto Scaling Group (ASG):</strong> Ensures elasticity and resilience.</li>
+                <li><strong>Bastion Host:</strong> Temporary, secure access for management operations.</li>
+                <li><strong>Automated File Updates:</strong> Secure EFS updates via S3 and SSM, with automatic ASG refresh.</li>
+                <li><strong>Infrastructure as Code:</strong> All resources managed and versioned with Terraform modules.</li>
+            </ul>
+        </div>
+        <div class="author">
+            <h2>About the Author</h2>
+            <p>Project by <a href="https://github.com/andresinho20049" target="_blank">Andresinho20049</a></p>
+            <p>Cloud enthusiast, DevOps practitioner, and AWS Solutions Architect student.</p>
+        </div>
+        <div class="lang-link">
+            <a href="index.pt-br.html">Portuguese version</a>
+        </div>
+    </div>
+</body>
+</html>
