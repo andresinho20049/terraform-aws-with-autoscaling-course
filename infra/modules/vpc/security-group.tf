@@ -3,14 +3,6 @@ resource "aws_security_group" "sg_public" {
   name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.public.${var.environment}"
   description = "Allow SSH and HTTP access to public resources in ${var.vpc_name} VPC"
   vpc_id      = aws_vpc.my_vpc.id
-  
-  ingress {
-    description = "SSH from anywhere"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
     description = "HTTP from anywhere"
@@ -75,31 +67,11 @@ resource "aws_security_group" "sg_private" {
   depends_on = [ aws_vpc.my_vpc, aws_security_group.sg_public ]
 }
 
-## --
-
-# Defines a security group for the bastion host, allowing SSH access from specific IPs and NFS access to EFS.
+# Defines a security group for the bastion host.
 resource "aws_security_group" "sg_bastion" {
   name        = "${var.account_username}.${var.region}.${var.vpc_name}.sg.bastion.${var.environment}"
-  description = "Allow SSH from trusted IPs and NFS access to EFS"
+  description = "Security group for the bastion host, access via SSM"
   vpc_id      = aws_vpc.my_vpc.id
-
-  # Role to allow SSH access from a specific IP (e.g., your office or home IP)
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # 0.0.0.0/0 to allow SSH from anywhere; replace with your specific IP if needed
-    description = "Allow SSH from specific IP"
-  }
-
-  # Role to allow SSM access
-  ingress {
-    from_port   = 2049
-    to_port     = 2049
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # 0.0.0.0/0 to allow SSH from anywhere; replace with your specific IP if needed
-    description = "Allow NFS access from bastion to EFS"
-  }
 
   egress {
     from_port   = 0
