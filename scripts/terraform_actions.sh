@@ -2,27 +2,19 @@
 
 # Function to execute Terraform apply
 # Args:
-#   $1: ENVIRONMENT
-#   $2: PROJECT_ROOT
-#   $3: USERNAME
-#   $4: TF_BACKEND_KEY (used as 'project' var)
-#   $5: SSH_KEY_NAME
-#   $6: TF_BACKEND_BUCKET
-#   $7: TF_BACKEND_KEY
-#   $8: TF_BACKEND_REGION
-#   $9: TF_AWS_LOCK_DYNAMODB_TABLE
-#   $10: CREATE_BASTION_HOST
+#   $1: CREATE_BASTION_HOST (opcional, default: false)
 execute_terraform_apply() {
-    local env="$1"
-    local project_root="$2"
-    local username="$3"
-    local project_name_var="$4"
-    local key_name="$5"
-    local bucket="$6"
-    local key="$7"
-    local region="$8"
-    local dynamodb_table="$9"
-    local create_bastion="${10}"
+    local create_bastion="${1:-false}"
+
+    local env="$TF_VAR_ENVIRONMENT"
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local username="$TF_VAR_USERNAME"
+    local project_name_var="$TF_VAR_PROJECT_NAME"
+    local key_name="$TF_VAR_SSH_KEY_NAME"
+    local bucket="$TF_BACKEND_BUCKET"
+    local key="$TF_BACKEND_KEY"
+    local region="$TF_BACKEND_REGION"
+    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
 
     local terraform_dir="${project_root}/infra"
     local terraform_vars_file="${terraform_dir}/envs/$env/terraform.tfvars"
@@ -65,27 +57,19 @@ execute_terraform_apply() {
 
 # Function to execute Terraform destroy
 # Args:
-#   $1: ENVIRONMENT
-#   $2: PROJECT_ROOT
-#   $3: USERNAME
-#   $4: TF_BACKEND_KEY (used as 'project' var)
-#   $5: SSH_KEY_NAME
-#   $6: TF_BACKEND_BUCKET
-#   $7: TF_BACKEND_KEY
-#   $8: TF_BACKEND_REGION
-#   $9: TF_AWS_LOCK_DYNAMODB_TABLE
-#   $10: CREATE_BASTION_HOST
+#   $1: CREATE_BASTION_HOST (opcional, default: false)
 execute_terraform_destroy() {
-    local env="$1"
-    local project_root="$2"
-    local username="$3"
-    local project_name_var="$4" # This is TF_BACKEND_KEY, used as 'project' var
-    local key_name="$5"
-    local bucket="$6"
-    local key="$7"
-    local region="$8"
-    local dynamodb_table="$9"
-    local create_bastion="${10}"
+    local create_bastion="${1:-false}"
+
+    local env="$TF_VAR_ENVIRONMENT"
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local username="$TF_VAR_USERNAME"
+    local project_name_var="$TF_VAR_PROJECT_NAME"
+    local key_name="$TF_VAR_SSH_KEY_NAME"
+    local bucket="$TF_BACKEND_BUCKET"
+    local key="$TF_BACKEND_KEY"
+    local region="$TF_BACKEND_REGION"
+    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
 
     local terraform_dir="${project_root}/infra"
     local terraform_vars_file="${terraform_dir}/envs/$env/terraform.tfvars"
@@ -109,14 +93,13 @@ execute_terraform_destroy() {
         tf_init_and_workspace "$env" "$terraform_dir" "$bucket" "$key" "$region" "$dynamodb_table"
 
         echo "Destroying Terraform infrastructure..."
-        # Pass create_bastion_host=0 for destroy to explicitly target bastion removal if it exists.
         terraform destroy \
             -var-file="${terraform_vars_file}" \
             -var="account_username=$username" \
             -var="project=$project_name_var" \
             -var="key_name=$key_name" \
             -var="create_bastion_host=$create_bastion" \
-            -auto-approve # Auto-approve for simpler destroy via script
+            -auto-approve
     )
     echo "Terraform destroy completed."
 }

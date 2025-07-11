@@ -6,6 +6,7 @@ set -euo pipefail
 # --- Define Project Root ---
 SCRIPT_DIR=$(unset CDPATH && cd "$(dirname "$0")" && pwd)
 PROJECT_ROOT="${SCRIPT_DIR}"
+export PROJECT_ROOT
 
 echo "Project root detected at: ${PROJECT_ROOT}"
 
@@ -56,7 +57,8 @@ source "${PROJECT_ROOT}/.env"
 set +a # Disable auto-export
 
 # Validate required environment variables
-REQUIRED_VARS=("ENVIRONMENT" "TF_BACKEND_BUCKET" "TF_BACKEND_KEY" "TF_BACKEND_REGION" "TF_AWS_LOCK_DYNAMODB_TABLE" "USERNAME" "SSH_KEY_NAME")
+REQUIRED_VARS=("ENVIRONMENT" "TF_BACKEND_BUCKET" "TF_BACKEND_KEY" "TF_BACKEND_REGION" "TF_AWS_LOCK_DYNAMODB_TABLE"
+                "TF_VAR_USERNAME" "TF_VAR_PROJECT_NAME" "TF_VAR_ENVIRONMENT" "TF_VAR_SSH_KEY_NAME")
 for VAR_NAME in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!VAR_NAME:-}" ]; then
     echo "Error: Required environment variable '$VAR_NAME' is not set in .env"
@@ -69,28 +71,28 @@ echo "Environment variables loaded successfully."
 # --- Main Action Logic ---
 case "$ACTION" in
   apply)
-    execute_packer_build "$ENVIRONMENT" "$PROJECT_ROOT"
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
+    execute_packer_build "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT"
+    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   destroy)
-    execute_terraform_destroy "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
+    execute_terraform_destroy "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                               "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   up-bastion)
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
+    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" true
     ;;
 
   down-bastion)
-    execute_terraform_apply "$ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
+    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
     ;;
 
   update-efs-file)
-    execute_efs_file_update "$@" "$PROJECT_ROOT" "$ENVIRONMENT" "$PROJECT_NAME" "$TF_BACKEND_REGION" \
+    execute_efs_file_update "$@" "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$PROJECT_NAME" "$TF_BACKEND_REGION" \
                             "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_AWS_LOCK_DYNAMODB_TABLE"
     ;;
 
