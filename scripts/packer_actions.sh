@@ -1,12 +1,9 @@
 # scripts/packer_actions.sh
 
 # Function to execute Packer build
-# Args:
-#   $1: ENVIRONMENT
-#   $2: PROJECT_ROOT
 execute_packer_build() {
-    local env="$1"
-    local project_root="$2"
+    local env="$TF_VAR_ENVIRONMENT"
+    local project_root="${PROJECT_ROOT:-$PWD}"
     local packer_dir="${project_root}/packer/ami-templates/nginx-webserver"
     local packer_vars_file="${project_root}/packer/envs/$env/$env.pkrvars.hcl"
 
@@ -29,7 +26,7 @@ execute_packer_build() {
         packer init .
 
         echo "Building AMI with Packer for environment: $env"
-        packer build -var-file="${packer_vars_file}" .
+        packer build -var "aws_region=${TF_VAR_REGION}" -var-file="${packer_vars_file}" .
     )
     echo "Packer execution completed."
 }

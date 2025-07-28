@@ -10,15 +10,6 @@ export PROJECT_ROOT
 
 echo "Project root detected at: ${PROJECT_ROOT}"
 
-# --- Source Common Utilities and Action Scripts ---
-# Carrega funções de utilidade
-source "${PROJECT_ROOT}/scripts/utils.sh"
-# Carrega as lógicas de ação
-source "${PROJECT_ROOT}/scripts/packer_actions.sh"
-source "${PROJECT_ROOT}/scripts/terraform_actions.sh"
-source "${PROJECT_ROOT}/scripts/efs_actions.sh"
-
-
 # Define script usage (now includes more actions)
 usage() {
   echo "Usage: $0 <action> [options]"
@@ -43,63 +34,87 @@ fi
 ACTION="$1"
 shift # Remove the action from arguments, so remaining arguments are for the action
 
+
+loadSource() {
+  # --- Source Common Utilities and Action Scripts ---
+  source "${PROJECT_ROOT}/scripts/utils.sh"
+  source "${PROJECT_ROOT}/scripts/packer_actions.sh"
+  source "${PROJECT_ROOT}/scripts/terraform_actions.sh"
+  source "${PROJECT_ROOT}/scripts/efs_actions.sh"
+}
+
 # --- 1. Environment Preparation ---
-echo "--- 1. Preparing the Environment ---"
+preparingEnvironment() {
+  echo "--- 1. Preparing the Environment ---"
 
-# Check for .env file and load variables
-if [ ! -f "${PROJECT_ROOT}/.env" ]; then
-  echo "Error: .env file not found. Please rename .env.example to .env and configure it."
-  exit 1
-fi
-echo "Loading environment variables from .env..."
-set -a # Export all variables
-source "${PROJECT_ROOT}/.env"
-set +a # Disable auto-export
-
-# Validate required environment variables
-REQUIRED_VARS=("ENVIRONMENT" "TF_BACKEND_BUCKET" "TF_BACKEND_KEY" "TF_BACKEND_REGION" "TF_AWS_LOCK_DYNAMODB_TABLE"
-                "TF_VAR_USERNAME" "TF_VAR_PROJECT_NAME" "TF_VAR_ENVIRONMENT" "TF_VAR_SSH_KEY_NAME")
-for VAR_NAME in "${REQUIRED_VARS[@]}"; do
-  if [ -z "${!VAR_NAME:-}" ]; then
-    echo "Error: Required environment variable '$VAR_NAME' is not set in .env"
+  # Check for .env file and load variables
+  if [ ! -f "${PROJECT_ROOT}/.env" ]; then
+    echo "Error: .env file not found. Please rename .env.example to .env and configure it."
     exit 1
   fi
-done
+  echo "Loading environment variables from .env..."
+  set -a # Export all variables
+  source "${PROJECT_ROOT}/.env"
+  set +a # Disable auto-export
 
-echo "Environment variables loaded successfully."
+  # Validate required environment variables
+  REQUIRED_VARS=("TF_BACKEND_BUCKET" "TF_BACKEND_KEY" "TF_BACKEND_REGION" "TF_AWS_LOCK_DYNAMODB_TABLE"
+                  "TF_VAR_USERNAME" "TF_VAR_PROJECT_NAME" "TF_VAR_ENVIRONMENT" "TF_VAR_SSH_KEY_NAME")
+  for VAR_NAME in "${REQUIRED_VARS[@]}"; do
+    if [ -z "${!VAR_NAME:-}" ]; then
+      echo "Error: Required environment variable '$VAR_NAME' is not set in .env"
+      exit 1
+    fi
+  done
 
-# --- Main Action Logic ---
-case "$ACTION" in
-  apply)
-    execute_packer_build "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT"
-    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
-                            "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
-    ;;
+  echo "Environment variables loaded successfully."
+}
 
-  destroy)
-    execute_terraform_destroy "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
-                              "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
-    ;;
+# --- 2. Select Action ---
+selectAction() {
+  echo "--- 2. Selecting Action: $ACTION ---"
 
-  up-bastion)
-    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
-                            "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" true
-    ;;
+  case "$ACTION" in
+    apply)
+      echo "Selected action: apply"
+      execute_packer_build
+      execute_terraform_apply false
+      ;;
 
-  down-bastion)
-    execute_terraform_apply "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$USERNAME" "$PROJECT_NAME" "$SSH_KEY_NAME" \
-                            "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_BACKEND_REGION" "$TF_AWS_LOCK_DYNAMODB_TABLE" false
-    ;;
+    destroy)
+      echo "Selected action: destroy"
+      execute_terraform_destroy false
+      ;;
 
-  update-efs-file)
-    execute_efs_file_update "$@" "$TF_VAR_ENVIRONMENT" "$PROJECT_ROOT" "$PROJECT_NAME" "$TF_BACKEND_REGION" \
-                            "$TF_BACKEND_BUCKET" "$TF_BACKEND_KEY" "$TF_AWS_LOCK_DYNAMODB_TABLE"
-    ;;
+    up-bastion)
+      echo "Selected action: up-bastion"
+      execute_terraform_apply true
+      ;;
 
-  *)
-    echo "Error: Invalid action '$ACTION'."
-    usage
-    ;;
-esac
+    down-bastion)
+      echo "Selected action: down-bastion"
+      execute_terraform_apply false
+      ;;
 
-echo "--- Script execution completed for $ACTION action. ---"
+    update-efs-file)
+      echo "Selected action: update-efs-file"
+      execute_efs_file_update "$@" 
+      ;;
+
+    *)
+      echo "Error: Invalid action '$ACTION'."
+      usage
+      ;;
+  esac
+
+}
+
+# --- Main Script Execution ---
+main() {
+  echo "--- Starting Script Execution ---"
+  loadSource
+  preparingEnvironment
+  selectAction "$@"
+  echo "--- Script Execution Completed ---"
+}
+main "$@"

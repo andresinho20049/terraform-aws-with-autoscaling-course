@@ -1,5 +1,4 @@
 # --- Global Project Variables ---
-region           = "us-east-1"
 environment      = "staging"
 
 # --- VPC Module Variables ---

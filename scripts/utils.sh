@@ -1,95 +1,77 @@
 # scripts/utils.sh
 
-# Função para inicializar o Terraform backend e selecionar o workspace.
-# Esta função deve ser chamada no ESCOPO PRINCIPAL do script (ou antes de qualquer operação Terraform
-# que precise do estado inicializado).
-# Args:
-#   $1: ENVIRONMENT
-#   $2: TERRAFORM_DIR (diretório onde main.tf está)
-#   $3: TF_BACKEND_BUCKET
-#   $4: TF_BACKEND_KEY
-#   $5: TF_BACKEND_REGION
-#   $6: TF_AWS_LOCK_DYNAMODB_TABLE
+# Function to initialize the Terraform backend and select the workspace.
+# This function should be called in the MAIN SCOPE of the script (or before any Terraform operation
+# that needs the state initialized).
 tf_init_and_workspace() {
-    local env="$1"
-    local tf_dir="$2"
-    local bucket="$3"
-    local key="$4"
-    local region="$5"
-    local dynamodb_table="$6"
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local env="$TF_VAR_ENVIRONMENT"
+    local backend_s3_region="$TF_BACKEND_REGION"
+    local backend_s3_bucket="$TF_BACKEND_BUCKET" 
+    local backend_s3_key="$TF_BACKEND_KEY"    
+    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
+    local tf_dir="${project_root}/infra"
 
     # verify if required arguments are provided
-    cd "$tf_dir" || { echo "Erro: Não foi possível navegar para $tf_dir" >&2; return 1; }
+    cd "$tf_dir" || { echo "Error: Could not navigate to $tf_dir" >&2; return 1; }
 
-    echo "Inicializando Terraform backend para o ambiente '$env'..."
+    echo "Initializing Terraform backend for environment '$env'..."
     
     if ! terraform init \
         -reconfigure \
-        -backend-config="bucket=$bucket" \
-        -backend-config="key=$key" \
-        -backend-config="region=$region" \
+        -backend-config="bucket=$backend_s3_bucket" \
+        -backend-config="key=$backend_s3_key" \
+        -backend-config="region=$backend_s3_region" \
         -backend-config="dynamodb_table=$dynamodb_table" \
         -input=false \
         -no-color; then
-      echo "Erro: terraform init falhou para o ambiente '$env'." >&2
+      echo "Error: terraform init failed for environment '$env'." >&2
       return 1
     fi
 
-    echo "Selecionando ou criando Terraform workspace: $env..."
+    echo "Selecting or creating Terraform workspace: $env..."
     
     if ! terraform workspace select "$env" -no-color > /dev/null 2>&1; then
       if ! terraform workspace new "$env" -no-color > /dev/null 2>&1; then
-        echo "Erro: Não foi possível selecionar nem criar o workspace '$env'." >&2
+        echo "Error: Could not select or create workspace '$env'." >&2
         return 1
       fi
-      echo "Workspace '$env' criado e selecionado."
+      echo "Workspace '$env' created and selected."
     else
-      echo "Workspace '$env' selecionado."
+      echo "Workspace '$env' selected."
     fi
 
-    return 0 # Indica sucesso
+    return 0 # Indicates success
 }
 
-
-# Args:
-#   $1: PROJECT_ROOT
-#   $2: ENVIRONMENT
-#   $3: TF_BACKEND_BUCKET
-#   $4: TF_BACKEND_KEY
-#   $5: TF_BACKEND_REGION
-#   $6: TF_AWS_LOCK_DYNAMODB_TABLE
 get_bastion_instance_id_from_tf() {
-    local project_root="$1"
-    local env="$2"
-    local bucket="$3"
-    local key="$4"
-    local region="$5"
-    local dynamodb_table="$6"
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local env="$TF_VAR_ENVIRONMENT"
+    local backend_s3_region="$TF_BACKEND_REGION"
+    local backend_s3_bucket="$TF_BACKEND_BUCKET" 
+    local backend_s3_key="$TF_BACKEND_KEY"    
+    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
     local terraform_dir="${project_root}/infra"
     local bastion_id=""
-    local return_code=1 # Default to failure
 
-    bastion_id=$(
-        cd "$terraform_dir" || { echo "Erro: Não foi possível navegar para $terraform_dir dentro de get_bastion_instance_id_from_tf." >&2; exit 1; }
+    bastion_id=$( 
+        cd "$terraform_dir" || { echo "Error: Could not navigate to $terraform_dir inside get_bastion_instance_id_from_tf." >&2; exit 1; }
 
         if ! terraform init \
             -reconfigure \
-            -backend-config="bucket=$bucket" \
-            -backend-config="key=$key" \
-            -backend-config="region=$region" \
+            -backend-config="bucket=$backend_s3_bucket" \
+            -backend-config="key=$backend_s3_key" \
+            -backend-config="region=$backend_s3_region" \
             -backend-config="dynamodb_table=$dynamodb_table" \
             -input=false \
             -no-color > /dev/null 2>&1; then
-            echo "Erro: terraform init falhou dentro de get_bastion_instance_id_from_tf." >&2
-            exit 1 # Sai do subshell com erro
+            echo "Error: terraform init failed inside get_bastion_instance_id_from_tf." >&2
+            exit 1
         fi
 
         if ! terraform workspace select "$env" -no-color > /dev/null 2>&1; then
-            # Tenta criar se não existe, mas aqui o workspace já deveria existir
-            # se a infra principal foi aplicada.
-            # Se for um erro de verdade, propaga.
-            echo "Erro: terraform workspace select $env falhou dentro de get_bastion_instance_id_from_tf." >&2
-            exit 1 # Sai do subshell com erro
+            echo "Error: terraform workspace select $env failed inside get_bastion_instance_id_from_tf." >&2
+            exit 1
         fi
 
         terraform output -raw bastion_instance_id 2>/dev/null || echo ""
@@ -97,7 +79,7 @@ get_bastion_instance_id_from_tf() {
 
     if [ -z "$bastion_id" ]; then
         echo "Bastion host instance ID not found in Terraform outputs. It might not be created yet." >&2
-        return 1 # Indica falha
+        return 1
     fi
 
     echo "Found bastion instance ID: $bastion_id" >&2
@@ -105,41 +87,40 @@ get_bastion_instance_id_from_tf() {
     return 0 
 }
 
-# Args:
-#   $1: PROJECT_ROOT
-#   $2: ENVIRONMENT
-#   $3: TF_BACKEND_BUCKET
-#   $4: TF_BACKEND_KEY
-#   $5: TF_BACKEND_REGION
-#   $6: TF_AWS_LOCK_DYNAMODB_TABLE
 get_asg_name_from_tf() {
-    local project_root="$1"
-    local env="$2"
-    local bucket="$3"
-    local key="$4"
-    local region="$5"
-    local dynamodb_table="$6"
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local env="$TF_VAR_ENVIRONMENT"
+    local backend_s3_region="$TF_BACKEND_REGION"
+    local backend_s3_bucket="$TF_BACKEND_BUCKET" 
+    local backend_s3_key="$TF_BACKEND_KEY"    
+    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
     local terraform_dir="${project_root}/infra"
     local asg_name=""
 
-    asg_name=$(
-        cd "$terraform_dir" || { echo "Erro: Não foi possível navegar para $terraform_dir dentro de get_asg_name_from_tf." >&2; exit 1; }
+    asg_name=$( 
+        cd "$terraform_dir" || { echo "Error: Could not navigate to $terraform_dir inside get_asg_name_from_tf." >&2; exit 1; }
 
-        # A inicialização é necessária para garantir que o backend e o workspace estejam corretos
-        # antes de tentar ler o output.
-        terraform init -reconfigure -backend-config="bucket=$bucket" -backend-config="key=$key" -backend-config="region=$region" -backend-config="dynamodb_table=$dynamodb_table" -input=false -no-color > /dev/null 2>&1
+        # Initialization is required to ensure backend and workspace are correct
+        # before trying to read the output.
+        terraform init \
+            -reconfigure \
+            -backend-config="bucket=$backend_s3_bucket" \
+            -backend-config="key=$backend_s3_key" \
+            -backend-config="region=$backend_s3_region" \
+            -backend-config="dynamodb_table=$dynamodb_table" \
+            -input=false -no-color > /dev/null 2>&1
 
         if ! terraform workspace select "$env" -no-color > /dev/null 2>&1; then
-            echo "Erro: terraform workspace select $env falhou dentro de get_asg_name_from_tf." >&2
-            exit 1 # Sai do subshell com erro
+            echo "Error: terraform workspace select $env failed inside get_asg_name_from_tf." >&2
+            exit 1
         fi
 
         terraform output -raw autoscaling_group_name 2>/dev/null || echo ""
     )
 
     if [ -z "$asg_name" ]; then
-        echo "Erro: Nome do Auto Scaling Group não encontrado nos outputs do Terraform." >&2
-        return 1 # Indica falha
+        echo "Error: Auto Scaling Group name not found in Terraform outputs." >&2
+        return 1 # Indicates failure
     fi
 
     echo "Found Auto Scaling Group name: $asg_name"

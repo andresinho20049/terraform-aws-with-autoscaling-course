@@ -8,13 +8,6 @@ execute_terraform_apply() {
 
     local env="$TF_VAR_ENVIRONMENT"
     local project_root="${PROJECT_ROOT:-$PWD}"
-    local username="$TF_VAR_USERNAME"
-    local project_name_var="$TF_VAR_PROJECT_NAME"
-    local key_name="$TF_VAR_SSH_KEY_NAME"
-    local bucket="$TF_BACKEND_BUCKET"
-    local key="$TF_BACKEND_KEY"
-    local region="$TF_BACKEND_REGION"
-    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
 
     local terraform_dir="${project_root}/infra"
     local terraform_vars_file="${terraform_dir}/envs/$env/terraform.tfvars"
@@ -37,15 +30,15 @@ execute_terraform_apply() {
     (
         cd "$terraform_dir" || exit 1
 
-        tf_init_and_workspace "$env" "$terraform_dir" "$bucket" "$key" "$region" "$dynamodb_table"
+        tf_init_and_workspace
 
         echo "Planning Terraform infrastructure..."
         mkdir -p "$terraform_plan_dir"
         terraform plan \
             -var-file="${terraform_vars_file}" \
-            -var="account_username=$username" \
-            -var="project=$project_name_var" \
-            -var="key_name=$key_name" \
+            -var="account_username=${TF_VAR_USERNAME}" \
+            -var="project=${TF_VAR_PROJECT_NAME}" \
+            -var="region=${TF_VAR_REGION}" \
             -var="create_bastion_host=$create_bastion" \
             -out="$terraform_plan_file"
 
@@ -63,13 +56,6 @@ execute_terraform_destroy() {
 
     local env="$TF_VAR_ENVIRONMENT"
     local project_root="${PROJECT_ROOT:-$PWD}"
-    local username="$TF_VAR_USERNAME"
-    local project_name_var="$TF_VAR_PROJECT_NAME"
-    local key_name="$TF_VAR_SSH_KEY_NAME"
-    local bucket="$TF_BACKEND_BUCKET"
-    local key="$TF_BACKEND_KEY"
-    local region="$TF_BACKEND_REGION"
-    local dynamodb_table="$TF_AWS_LOCK_DYNAMODB_TABLE"
 
     local terraform_dir="${project_root}/infra"
     local terraform_vars_file="${terraform_dir}/envs/$env/terraform.tfvars"
@@ -90,14 +76,14 @@ execute_terraform_destroy() {
     (
         cd "$terraform_dir" || exit 1
 
-        tf_init_and_workspace "$env" "$terraform_dir" "$bucket" "$key" "$region" "$dynamodb_table"
+        tf_init_and_workspace
 
         echo "Destroying Terraform infrastructure..."
         terraform destroy \
             -var-file="${terraform_vars_file}" \
-            -var="account_username=$username" \
-            -var="project=$project_name_var" \
-            -var="key_name=$key_name" \
+            -var="account_username=${TF_VAR_USERNAME}" \
+            -var="project=${TF_VAR_PROJECT_NAME}" \
+            -var="region=${TF_VAR_REGION}" \
             -var="create_bastion_host=$create_bastion" \
             -auto-approve
     )

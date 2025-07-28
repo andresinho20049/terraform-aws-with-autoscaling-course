@@ -4,20 +4,21 @@
 # Args:
 #   $1: local_source_path (can be a file or a directory, relative to project_root)
 #   $2: efs_base_target_path (base directory on EFS, relative to /mnt/efs/<project_name>/)
-#   $@: Remaining arguments from run.sh (PROJECT_ROOT, ENVIRONMENT, PROJECT_NAME, REGION, BUCKET, KEY, DYNAMODB)
 execute_efs_file_update() {
+    if [ $# -lt 2 ]; then
+        echo "Error: Missing arguments for 'update-efs-file' action. Usage: ./run.sh update-efs-file <local_path> <efs_target_path>" >&2
+        exit 1
+    fi
     local local_source_path="$1"
     local efs_base_target_path="$2"
-    # Shift twice to get remaining arguments
-    shift 2
-    local project_root="$1"
-    local env="$2"
-    local project_name="$3"
-    local region="$4"
-    local backend_s3_bucket="$5" # Renamed for clarity
-    local backend_s3_key="$6"    # Renamed for clarity
-    local dynamodb_table="$7"
-
+    
+    shift 2 # Remove the first two arguments to access remaining ones
+    local project_root="${PROJECT_ROOT:-$PWD}"
+    local env="$TF_VAR_ENVIRONMENT"
+    local project_name="$TF_VAR_PROJECT_NAME"
+    local username="$TF_VAR_USERNAME"
+    local region="$TF_VAR_REGION"
+    
     if [ -z "$local_source_path" ] || [ -z "$efs_base_target_path" ]; then
       echo "Error: Missing arguments for 'update-efs-file' action. Usage: ./run.sh update-efs-file <local_path> <efs_target_path>" >&2
       exit 1
@@ -52,7 +53,7 @@ execute_efs_file_update() {
 
     local bastion_id=""
     # Attempt to get bastion ID. If not found, create it.
-    if ! bastion_id=$(get_bastion_instance_id_from_tf "$project_root" "$env" "$backend_s3_bucket" "$backend_s3_key" "$region" "$dynamodb_table"); then
+    if ! bastion_id=$(get_bastion_instance_id_from_tf); then
       echo "Bastion host not found. Creating temporary bastion host..."
       (
           # Execute up-bastion in a subshell to avoid affecting current script's directory/state
@@ -64,14 +65,14 @@ execute_efs_file_update() {
       local attempt=0
       local found_bastion=false
       while [ "$attempt" -lt "$max_attempts" ]; do
-          if bastion_id=$(get_bastion_instance_id_from_tf "$project_root" "$env" "$backend_s3_bucket" "$backend_s3_key" "$region" "$dynamodb_table"); then
+          if bastion_id=$(get_bastion_instance_id_from_tf); then
               echo "Bastion host is now available: $bastion_id"
               found_bastion=true
               break
           fi
-          echo "Still waiting for bastion host... (attempt $((attempt+1))/$max_attempts)" >&2
-          sleep 5
           attempt=$((attempt+1))
+          echo "Still waiting for bastion host... (attempt $((attempt))/$max_attempts)" >&2
+          sleep 5
       done
 
       if [ "$found_bastion" = false ]; then
@@ -85,7 +86,7 @@ execute_efs_file_update() {
     echo "Target EFS base path: $EFS_FINAL_BASE_PATH"
 
     # Define temporary S3 bucket and key prefix for upload
-    local s3_temp_bucket="${USERNAME}.${region}.s3.bhc-temp.${env}"
+    local s3_temp_bucket="${username}.${region}.s3.bhc-temp.${env}"
     local s3_key_prefix="efs-temp/${project_name}/$(date +%s)/" # Prefix for the temporary S3 directory
 
     # --- START: S3 Bucket Existence Check (Performed BEFORE upload) ---
@@ -170,22 +171,55 @@ execute_efs_file_update() {
 
     echo "Running remote commands on bastion to download from S3, move to EFS, adjust permissions, and clean up S3..."
 
-    aws ssm send-command \
+    # Send command and capture CommandId
+    local ssm_output
+    ssm_output=$(aws ssm send-command \
         --instance-ids "$bastion_id" \
         --document-name "AWS-RunShellScript" \
         --parameters "commands=[\"$remote_commands\"]" \
         --region "$region" \
-        --output text
+        --output json)
     if [ $? -ne 0 ]; then
         echo "Error running commands on bastion via SSM." >&2
         exit 1
     fi
+    local command_id
+    command_id=$(echo "$ssm_output" | grep -oP '"CommandId":\s*"\K[^"]+')
+    if [ -z "$command_id" ]; then
+        echo "Error: Could not retrieve SSM CommandId." >&2
+        exit 1
+    fi
+
+    echo "Waiting for SSM command ($command_id) to complete on bastion..."
+    local status="Pending"
+    local max_wait=60
+    local waited=0
+    while [ "$status" = "Pending" ] || [ "$status" = "InProgress" ]; do
+        status=$(aws ssm list-command-invocations \
+            --command-id "$command_id" \
+            --details \
+            --region "$region" \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+        if [ "$status" = "Success" ]; then
+            break
+        elif [ "$status" = "Failed" ] || [ "$status" = "Cancelled" ] || [ "$status" = "TimedOut" ]; then
+            echo "Error: SSM command failed with status: $status" >&2
+            exit 1
+        fi
+        sleep 2
+        waited=$((waited+2))
+        if [ $waited -ge $max_wait ]; then
+            echo "Error: SSM command did not complete within $max_wait seconds." >&2
+            exit 1
+        fi
+    done
 
     echo "Content updated on EFS via bastion host using temporary S3 bucket."
 
     echo "--- Starting Instance Refresh for the Auto Scaling Group ---"
     local asg_name=""
-    if ! asg_name=$(get_asg_name_from_tf "$project_root" "$env" "$backend_s3_bucket" "$backend_s3_key" "$region" "$dynamodb_table"); then
+    if ! asg_name=$(get_asg_name_from_tf); then
         echo "Critical Error: Could not retrieve Auto Scaling Group name. Skipping instance refresh." >&2
     else
         echo "Triggering instance refresh for ASG: $asg_name"
