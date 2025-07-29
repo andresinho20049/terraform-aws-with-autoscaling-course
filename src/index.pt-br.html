@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto de Estudo AWS Cloud Solutions Architect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f9fa;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 32px 28px 24px 28px;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-top: 0;
+            text-align: center;
+        }
+        h2 {
+            color: #444;
+            margin-bottom: 0.5em;
+        }
+        .infra {
+            background: #e3f2fd;
+            border-left: 4px solid #1a73e8;
+            padding: 16px 20px;
+            margin: 24px 0 32px 0;
+            border-radius: 6px;
+        }
+        .author {
+            margin-top: 32px;
+            padding-top: 18px;
+            border-top: 1px solid #eee;
+            color: #555;
+        }
+        .author a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .author a:hover {
+            text-decoration: underline;
+        }
+        .lang-link {
+            margin: 24px 0;
+            text-align: center;
+        }
+        .lang-link a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .lang-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Projeto de Estudo AWS Cloud Solutions Architect</h1>
+        <p>Este projeto é um estudo prático e demonstração de como construir uma infraestrutura AWS escalável, modular e pronta para produção utilizando <strong>Terraform</strong> e <strong>Packer</strong>. O objetivo é dominar as melhores práticas para a certificação AWS Solutions Architect e para implantações reais em nuvem.</p>
+        <div class="infra">
+            <h2>Visão Geral da Infraestrutura</h2>
+            <ul>
+                <li><strong>Suporte a Múltiplos Ambientes:</strong> dev, staging e prod com estado e configuração isolados.</li>
+                <li><strong>VPC:</strong> Rede customizada com subnets públicas/privadas, tabelas de rotas e security groups.</li>
+                <li><strong>Elastic File System (EFS):</strong> Armazenamento compartilhado para todas as instâncias da aplicação.</li>
+                <li><strong>Application Load Balancer (ALB):</strong> Distribui o tráfego para alta disponibilidade.</li>
+                <li><strong>Auto Scaling Group (ASG):</strong> Garante elasticidade e resiliência.</li>
+                <li><strong>Bastion Host:</strong> Acesso temporário e seguro para operações de gestão.</li>
+                <li><strong>Atualização Automatizada de Arquivos:</strong> Atualizações seguras no EFS via S3 e SSM, com refresh automático do ASG.</li>
+                <li><strong>Infraestrutura como Código:</strong> Todos os recursos gerenciados e versionados com módulos Terraform.</li>
+            </ul>
+        </div>
+        <div class="author">
+            <h2>Sobre o Autor</h2>
+            <p>Projeto por <a href="https://github.com/andresinho20049" target="_blank">Andresinho20049</a></p>
+            <p>Entusiasta de Cloud, praticante de DevOps e estudante de AWS Solutions Architect.</p>
+        </div>
+        <div class="lang-link">
+            <a href="index.html">Versão em inglês</a>
+        </div>
+    </div>
+</body>
+</html>

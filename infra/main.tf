@@ -5,6 +5,7 @@ module "main_vpc" {
 
   vpc_name             = var.vpc_name
   vpc_cidr_block       = var.vpc_cidr_block
+
   public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
   public_azs           = var.public_azs
@@ -23,8 +24,10 @@ module "efs" {
   vpc_id              = module.main_vpc.vpc_id
   private_subnet_ids  = module.main_vpc.private_subnet_ids
   private_sg_id       = module.main_vpc.private_security_group_id
+  bastion_sg_id       = module.main_vpc.bastion_security_group_id
+  efs_sg_id           = module.main_vpc.efs_security_group_id
 
-  account_username = var.account_username
+  account_username    = var.account_username
   region              = var.region
   environment         = var.environment
   project             = var.project
@@ -41,10 +44,10 @@ module "web_alb" {
   private_subnet_ids  = module.main_vpc.private_subnet_ids
   public_sg_id        = module.main_vpc.public_security_group_id
   private_sg_id       = module.main_vpc.private_security_group_id 
+  efs_sg_id           = module.main_vpc.efs_security_group_id
 
   # Pass outputs from the efs module as inputs
   efs_id              = module.efs.efs_file_system_id
-  efs_sg_id           = module.efs.efs_security_group_id
 
   # ALB & Target Group configuration
   alb_name_suffix      = var.alb_name_suffix
@@ -71,4 +74,34 @@ module "web_alb" {
   project          = var.project
 
   depends_on = [ module.main_vpc, module.efs ]
+}
+
+module "bastion_host" {
+  source = "./modules/bhc"
+
+  # Pass outputs from the main_vpc module as inputs
+  vpc_id              = module.main_vpc.vpc_id
+  public_subnet_ids   = module.main_vpc.public_subnet_ids
+  public_sg_id        = module.main_vpc.public_security_group_id
+  efs_sg_id           = module.main_vpc.efs_security_group_id
+  bastion_sg_id       = module.main_vpc.bastion_security_group_id
+
+  # Pass outputs from the efs module as inputs
+  efs_id              = module.efs.efs_file_system_id
+  efs_file_system_arn = module.efs.efs_file_system_arn
+
+  # Bastion Host configuration
+  instance_type       = var.bastion_instance_type
+  ami_data_id         = module.web_alb.ami_data_id
+  key_name            = var.key_name
+
+  account_username    = var.account_username
+  region              = var.region
+  environment         = var.environment
+  project             = var.project
+
+  # Conditional creation of the bastion host
+  count               = var.create_bastion_host ? 1 : 0
+
+  depends_on = [ module.main_vpc, module.efs, module.web_alb ]
 }

@@ -1,5 +1,4 @@
 # --- Global Project Variables ---
-region           = "sa-east-1"         # The primary AWS region for your infrastructure
 environment      = "dev"               # The deployment environment (e.g., 'dev', 'prod', 'staging')
 
 # --- VPC Module Variables ---

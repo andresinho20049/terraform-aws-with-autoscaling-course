@@ -172,3 +172,16 @@ variable "max_size" {
     error_message = "The maximum size must be greater than or equal to the desired capacity and minimum size."
   }
 }
+
+# --- Bastion Host Specific Variables ---
+variable "create_bastion_host" {
+  description = "Set to 1 to create a temporary bastion host for EFS operations."
+  type        = bool
+  default     = false # Default to false, so it's not created unless explicitly set
+}
+
+variable "bastion_instance_type" {
+  description = "The EC2 instance type for the bastion host (e.g., 't2.micro')."
+  type        = string
+  default     = "t2.micro"
+}
