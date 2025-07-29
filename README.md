@@ -1,8 +1,9 @@
-# AWS Infrastructure with Terraform – Study & Automation
+# 🚀 AWS Infrastructure with Terraform – Study & Automation
+[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](/README.pt-br.md)
 
 This repository is a practical and automated study of AWS infrastructure provisioning using Terraform, Packer, and Shell Script. The goal is to create a scalable, secure, and maintainable environment, focusing on best practices for real-world projects and AWS certification preparation.
 
-## Use Case Overview
+## 🔛 Use Case Overview
 
 The project simulates a scalable web application scenario, with multiple environments (dev, prod, staging), automated deployment of static content via EFS, and a secure bastion host lifecycle. The main flow is:
 
@@ -11,7 +12,7 @@ The project simulates a scalable web application scenario, with multiple environ
 3. **Centralized content update** on EFS, instantly reflected on all ASG instances.
 4. **Full automation** via the `run.sh` script, orchestrating all steps, including bastion host lifecycle.
 
-## Key Components
+## 🔑 Key Components
 
 - **Modular VPC**: Public/private subnets, routing, segmented security groups.
 - **EFS**: Shared storage for web content, mounted on all ASG instances.
@@ -19,7 +20,7 @@ The project simulates a scalable web application scenario, with multiple environ
 - **Ephemeral Bastion Host**: Created on demand for admin operations (e.g., EFS updates), automatically destroyed after use.
 - **Automation via `run.sh`**: A single entry point for build, deploy, content update, and teardown.
 
-## Project Structure
+## 🚧 Project Structure
 
 The project is structured into modules to promote modularity, reusability, and scalability. Environment variables and secrets will be used to manage sensitive and environment-specific configurations.
 
@@ -90,7 +91,7 @@ To support **multiple environments** (such as `dev`, `prod`, `staging`), the pro
 
 Each environment folder (`dev`, `prod`, `staging`, etc.) contains a `terraform.tfvars` file with specific configurations for that environment, such as VPC CIDR blocks, AMI IDs, and instance types.
 
-## Provisioned Resources
+## ☁️ Provisioned Resources
 
 The infrastructure provisioned by this project covers the following components:
 
@@ -147,7 +148,7 @@ Responsible for provisioning a secure and temporary bastion host.
   * **Access Control:** The bastion's Security Group is strictly configured to allow SSH access only from trusted IPs and NFS access to EFS. The use of SSM (AWS Systems Manager) is prioritized for access and command execution, eliminating the need to publicly open SSH ports.
   * **Cost and Security Optimization:** Being temporary and activated on demand, the bastion host minimizes costs and reduces the attack surface, as it is not active 24/7.
 
-## AMI Build Approach and Content Management
+## 〰️ AMI Build Approach and Content Management
 
 This project adopts a robust approach for managing machine images and application content:
 
@@ -155,7 +156,7 @@ This project adopts a robust approach for managing machine images and applicatio
   * **EFS as a Distributed File Server:** **Amazon EFS** is employed as a fully managed network file system (NFS). This means web content (HTML, CSS, JS, images) is stored in a single, centralized source of truth on EFS. When a file is updated on EFS (e.g., via the bastion host), this change is **immediately reflected** across all EC2 instances in the Auto Scaling Group that are mounting the same EFS. This eliminates the need to individually synchronize files on each server, simplifying content deployment and ensuring consistency.
   * **Bastion Host for Secure Operations:** Updating content on EFS or other management tasks are performed securely through the **temporary bastion host**. This bastion is created with **appropriate Security Groups and IAM profiles**, ensuring that only necessary traffic and permissions are granted during the operation's lifespan. This keeps your application instances in private subnets, protected from direct access.
 
-## Naming Convention
+## 💱 Naming Convention
 
 AWS resources will follow a consistent naming pattern:
 
@@ -169,7 +170,7 @@ AWS resources will follow a consistent naming pattern:
 
 **Example:** `andresinho20049.us-east-1.vpc.my-vpc.dev`
 
-## Resource Tags
+## ®️ Resource Tags
 
 All provisioned resources will include the following tags for better organization and traceability:
 
@@ -177,7 +178,7 @@ All provisioned resources will include the following tags for better organizatio
   * `project`: `$project` (Project name, ex: `terraform-study`)
   * `region`: `$region` (AWS Region)
 
-## S3 Backend and Workspaces
+## 💻 S3 Backend and Workspaces
 
 To manage Terraform state securely and collaboratively, an S3 backend with DynamoDB for state locking will be used. Additionally, workspaces will be employed to isolate environments (development, production, etc.).
 
@@ -191,7 +192,7 @@ terraform workspace select $ENVIRONMENT || terraform workspace new $ENVIRONMENT
 
 This ensures that the Terraform state is stored separately for each environment (e.g., `dev`, `prod`).
 
-## Requirements
+## ✳️ Requirements
 
   * **Terraform CLI** installed.
   * **Packer CLI** installed.
@@ -200,11 +201,11 @@ This ensures that the Terraform state is stored separately for each environment 
   * DynamoDB table configured for state locking.
 
 
-## How to Use
+## ⁉️ How to Use
 
 This project offers two main ways to interact with the infrastructure: by executing commands **manually** (for greater control and debugging) or by using the **`run.sh` script** (for automation and convenience).
 
-### 1\. Preparing the Environment (Both Approaches)
+### 🔺 1\. Preparing the Environment (Both Approaches)
 
 Regardless of the chosen approach, the initial steps are the same.
 
@@ -236,13 +237,13 @@ Regardless of the chosen approach, the initial steps are the same.
   * [**Manual Approach (Step-by-Step)**](#2-manual-approach-step-by-step)
   * [**Automated Approach (Using `run.sh`)**](#3-automated-approach-using-runsh)
 
-### 2\. Manual Approach (Step-by-Step)
+### 🔹 2\. Manual Approach (Step-by-Step)
 
 Follow these steps if you prefer to execute Packer, Terraform, and AWS CLI commands manually for greater control and debugging.
 
 <details> 
 <summary>
-:eyes: Veja Exemplo
+    👀 See Example
 </summary>
 
 <content>
@@ -444,13 +445,13 @@ We assume the **bastion host is already running** and that the **EFS is mounted 
 
 </details>
 
-### 3\. Automated Approach (Using `run.sh`)
+### 🔸 3\. Automated Approach (Using `run.sh`)
 
 The `run.sh` script centralizes and automates operations, making them simpler and less error-prone.
 
 <details> 
 <summary>
-:eyes: Veja Exemplo
+    👀 See Example
 </summary>
 
 <content>
@@ -485,7 +486,7 @@ The `run.sh` script centralizes and automates operations, making them simpler an
 
 </details>
 
-## Best Practices & Highlights
+## 💥 Best Practices & Highlights
 
 - **Secure bastion lifecycle**: No open SSH ports, uses SSM, destroys host after use.
 - **End-to-end automation**: From AMI build to content deploy, all via a single script.
@@ -493,5 +494,8 @@ The `run.sh` script centralizes and automates operations, making them simpler an
 - **Idempotency & consistency**: Content updates are reflected on all instances without manual deploys.
 - **Ready for multi-region & peering**: Network structure prepared for expansion.
 
-**Author:** [Andresinho20049](https://andresinho20049.com.br/)  
-**Project:** AWS Cloud Solutions Architect Study Project
+## ©️ Copyright
+**Developed by** [Andresinho20049](https://andresinho20049.com.br/) \
+**Project**: *AWS Infrastructure with Terraform – Study & Automation* \
+**Description**: \
+This project offers a practical and automated study of AWS infrastructure provisioning using Terraform, Packer, and Shell Script. It creates a scalable, secure, and easy-to-maintain environment, focusing on best practices and preparing for AWS certifications. It simulates a web application with multiple environments (dev, prod, staging), including the creation of a custom AMI with Packer, provisioning of VPC, EFS, ALB, and ASG via Terraform, and full automation via the run.sh script.

@@ -1,8 +1,9 @@
-# Projeto: Infraestrutura AWS com Terraform – Estudo e Automação
+# 🚀 Infraestrutura AWS com Terraform – Estudo e Automação
+[![en](https://img.shields.io/badge/lang-en-blue.svg)](/README.md)
 
 Este repositório é um estudo prático e automatizado de provisionamento de infraestrutura AWS usando Terraform, Packer e Shell Script. O objetivo é criar um ambiente escalável, seguro e de fácil manutenção, focado em boas práticas para projetos reais e preparação para certificações AWS.
 
-## Visão Geral do Caso de Uso
+## 🔛 Visão Geral do Caso de Uso
 
 O projeto simula um cenário de aplicação web escalável, com múltiplos ambientes (dev, prod, staging), deploy automatizado de conteúdo estático via EFS, e ciclo de vida seguro para bastion host. O fluxo principal é:
 
@@ -11,7 +12,7 @@ O projeto simula um cenário de aplicação web escalável, com múltiplos ambie
 3. **Atualização de conteúdo** no EFS de forma centralizada e segura, refletindo em todas as instâncias do ASG.
 4. **Automação total** via script `run.sh`, que orquestra todas as etapas, incluindo ciclo de vida do bastion host.
 
-## Principais Componentes
+## 🔑 Principais Componentes
 
 - **VPC Modular**: Subnets públicas/privadas, roteamento, security groups segmentados.
 - **EFS**: Armazenamento compartilhado para conteúdo web, montado em todas as instâncias do ASG.
@@ -19,7 +20,7 @@ O projeto simula um cenário de aplicação web escalável, com múltiplos ambie
 - **Bastion Host Temporário**: Criado sob demanda para operações administrativas (ex: atualização de arquivos no EFS), destruído automaticamente após uso.
 - **Automação via `run.sh`**: Um único ponto de entrada para build, deploy, atualização de conteúdo e teardown.
 
-## Estrutura do Projeto
+## 🚧 Estrutura do Projeto
 
 O projeto é estruturado em módulos para promover a modularidade, reusabilidade e escalabilidade. Variáveis de ambiente e segredos serão utilizados para gerenciar configurações sensíveis e específicas de cada ambiente.
 
@@ -90,7 +91,7 @@ Para suportar **múltiplos ambientes** (como `dev`, `prod`, `staging`), o projet
 
 Cada pasta de ambiente (`dev`, `prod`, `staging`, etc.) contém um arquivo `terraform.tfvars` com configurações específicas para aquele ambiente, como blocos CIDR de VPC, IDs de AMI e tipos de instância.
 
-## Recursos Provisionados
+## ☁️ Recursos Provisionados
 
 A infraestrutura provisionada por este projeto abrange os seguintes componentes:
 
@@ -147,7 +148,7 @@ Responsável pela provisão de um bastion host seguro e temporário.
   * **Controle de Acesso:** O Security Group do bastion é rigorosamente configurado para permitir acesso SSH apenas de IPs confiáveis e acesso NFS ao EFS. O uso de SSM (AWS Systems Manager) é priorizado para acesso e execução de comandos, eliminando a necessidade de abrir portas SSH publicamente.
   * **Otimização de Custos e Segurança:** Sendo temporário e ativado sob demanda, o bastion host minimiza os custos e reduz a superfície de ataque, pois não está ativo 24/7.
 
-## Abordagem de Construção de AMI e Gerenciamento de Conteúdo
+## 〰️ Abordagem de Construção de AMI e Gerenciamento de Conteúdo
 
 Este projeto adota uma abordagem robusta para a gestão de imagens de máquinas e conteúdo da aplicação:
 
@@ -155,7 +156,7 @@ Este projeto adota uma abordagem robusta para a gestão de imagens de máquinas 
   * **EFS como Servidor de Arquivos Distribuído:** O **Amazon EFS** é empregado como um sistema de arquivos de rede (NFS) totalmente gerenciado. Isso significa que o conteúdo web (HTML, CSS, JS, imagens) é armazenado em uma única fonte de verdade centralizada no EFS. Quando um arquivo é atualizado no EFS (por exemplo, via bastion host), essa alteração é **imediatamente refletida** em todas as instâncias EC2 do Auto Scaling Group que estão montando o mesmo EFS. Isso elimina a necessidade de sincronizar arquivos individualmente em cada servidor, simplificando a implantação de conteúdo e garantindo a consistência.
   * **Bastion Host para Operações Seguras:** A atualização do conteúdo no EFS ou outras tarefas de gerenciamento são realizadas de forma segura através do **bastion host temporário**. Este bastion é criado com **Security Groups e perfis IAM apropriados**, garantindo que apenas o tráfego e as permissões necessárias sejam concedidos durante o tempo de vida da operação. Isso mantém suas instâncias de aplicação em subnets privadas, protegidas de acesso direto.
 
-## Convenção de Nomenclatura
+## 💱 Convenção de Nomenclatura
 
 Os recursos AWS seguirão um padrão de nomenclatura consistente:
 
@@ -169,7 +170,7 @@ Os recursos AWS seguirão um padrão de nomenclatura consistente:
 
 **Exemplo:** `andresinho20049.us-east-1.vpc.my-vpc.dev`
 
-## Tags nos Recursos
+## ®️ Tags nos Recursos
 
 Todos os recursos provisionados incluirão as seguintes tags para melhor organização e rastreabilidade:
 
@@ -177,7 +178,7 @@ Todos os recursos provisionados incluirão as seguintes tags para melhor organiz
   * `project`: `$project` (Nome do projeto, ex: `estudo-terraform`)
   * `region`: `$region` (Região AWS)
 
-## Backend S3 e Workspaces
+## 💻 Backend S3 e Workspaces
 
 Para gerenciar o estado do Terraform de forma segura e colaborativa, será utilizado um backend S3 com DynamoDB para bloqueio de estado. Além disso, serão usados workspaces para isolar ambientes (desenvolvimento, produção, etc.).
 
@@ -192,7 +193,7 @@ terraform workspace select $ENVIRONMENT || terraform workspace new $ENVIRONMENT
 Isso garante que o estado do Terraform seja armazenado separadamente para cada ambiente (e.g., `dev`, `prod`).
 
 
-## Requisitos
+## ✳️ Requisitos
 
   * **Terraform CLI** instalado.
   * **Packer CLI** instalado.
@@ -200,11 +201,11 @@ Isso garante que o estado do Terraform seja armazenado separadamente para cada a
   * Bucket S3 configurado para o backend de estado.
   * Tabela DynamoDB configurada para o bloqueio de estado.
 
-## Como Usar
+## ⁉️ Como Usar
 
 Este projeto oferece duas formas principais de interagir com a infraestrutura: executando os comandos **manualmente** (para maior controle e depuração) ou utilizando o **script `run.sh`** (para automação e conveniência).
 
-### 1\. Preparando o Ambiente (Ambas as Abordagens)
+### 🔺 1\. Preparando o Ambiente (Ambas as Abordagens)
 
 Independentemente da abordagem escolhida, os passos iniciais são os mesmos.
 
@@ -236,13 +237,13 @@ Independentemente da abordagem escolhida, os passos iniciais são os mesmos.
   * [**Abordagem Manual (Passo a Passo)**](#2-abordagem-manual-passo-a-passo)
   * [**Abordagem Automatizada (Usando `run.sh`)**](#3-abordagem-automatizada-usando-runsh)
 
-### 2\. Abordagem Manual (Passo a Passo)
+### 🔹 2\. Abordagem Manual (Passo a Passo)
 
 Siga estes passos se preferir executar os comandos do Packer, Terraform e AWS CLI manualmente para maior controle e depuração.
 
 <details> 
 <summary>
-:eyes: Veja Exemplo
+    👀 Veja exemplo
 </summary>
 
 <content>
@@ -443,13 +444,13 @@ Assumiremos que o **bastion host já está em execução** e que o **EFS está m
 
 </details>
 
-### 3\. Abordagem Automatizada (Usando `run.sh`)
+### 🔸 3\. Abordagem Automatizada (Usando `run.sh`)
 
 O script `run.sh` centraliza e automatiza as operações, tornando-as mais simples e menos propensas a erros.
 
 <details> 
 <summary>
-:eyes: Veja Exemplo
+    👀 Veja exemplo
 </summary>
 
 <content>
@@ -484,7 +485,7 @@ O script `run.sh` centraliza e automatiza as operações, tornando-as mais simpl
 
 </details>
 
-## Boas Práticas e Diferenciais
+## 💥 Boas Práticas e Diferenciais
 
 - **Ciclo de vida seguro do bastion**: Não deixa portas SSH abertas, usa SSM, e destrói o host após uso.
 - **Automação ponta-a-ponta**: Do build da AMI ao deploy do conteúdo, tudo via um único script.
@@ -492,5 +493,8 @@ O script `run.sh` centraliza e automatiza as operações, tornando-as mais simpl
 - **Idempotência e consistência**: Atualizações de conteúdo são refletidas em todas as instâncias sem necessidade de deploy manual em cada uma.
 - **Pronto para multi-região e peering**: Estrutura de rede preparada para expansão.
 
-**Autor:** [Andresinho20049](https://andresinho20049.com.br/)  
-**Projeto:** AWS Cloud Solutions Architect Study Project
+## ©️ Copyright
+**Developed by** [Andresinho20049](https://andresinho20049.com.br/) \
+**Project**: *Infraestrutura AWS com Terraform – Estudo e Automação* \
+**Description**: \
+Este projeto oferece um estudo prático e automatizado de provisionamento de infraestrutura AWS usando Terraform, Packer e Shell Script. Ele cria um ambiente escalável, seguro e de fácil manutenção, com foco em melhores práticas e preparação para certificações AWS. Simula uma aplicação web com múltiplos ambientes (dev, prod, staging), incluindo a criação de AMI personalizada com Packer, provisionamento de VPC, EFS, ALB, ASG via Terraform e automação completa via script run.sh.
