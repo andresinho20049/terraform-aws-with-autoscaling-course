@@ -1,7 +1,23 @@
-# Terraform AWS Cloud Solutions Architect Study Project
+# AWS Infrastructure with Terraform – Study & Automation
 
-This project's main goal is to study and practice Infrastructure as Code (IaC) by using Terraform to provision resources in Amazon Web Services (AWS). The focus is to deepen knowledge in essential AWS services for the AWS Solutions Architect certification, ensuring that the infrastructure is scalable, repeatable, and well-organized.
+This repository is a practical and automated study of AWS infrastructure provisioning using Terraform, Packer, and Shell Script. The goal is to create a scalable, secure, and maintainable environment, focusing on best practices for real-world projects and AWS certification preparation.
 
+## Use Case Overview
+
+The project simulates a scalable web application scenario, with multiple environments (dev, prod, staging), automated deployment of static content via EFS, and a secure bastion host lifecycle. The main flow is:
+
+1. **Custom AMI build** with Packer (NGINX, dependencies, etc).
+2. **Infrastructure provisioning** (VPC, EFS, ALB, ASG, Bastion) via Terraform.
+3. **Centralized content update** on EFS, instantly reflected on all ASG instances.
+4. **Full automation** via the `run.sh` script, orchestrating all steps, including bastion host lifecycle.
+
+## Key Components
+
+- **Modular VPC**: Public/private subnets, routing, segmented security groups.
+- **EFS**: Shared storage for web content, mounted on all ASG instances.
+- **ALB & ASG**: Load balancing and auto-scaling.
+- **Ephemeral Bastion Host**: Created on demand for admin operations (e.g., EFS updates), automatically destroyed after use.
+- **Automation via `run.sh`**: A single entry point for build, deploy, content update, and teardown.
 
 ## Project Structure
 
@@ -88,7 +104,7 @@ Responsible for creating the virtual network in AWS, including:
           * **Private Subnet AZa:** `10.0.2.0/24`
           * **Public Subnet AZb:** `10.0.3.0/24`
           * **Private Subnet AZb:** `10.0.4.0/24`
-      * **Second Network (for multi-region peering):** `10.1.0.0/16`
+      * **Second Network (for multi-region peering):** `10.1.0.0/16` > Optional
           * **Public Subnet AZa:** `10.1.1.0/24`
           * **Private Subnet AZa:** `10.1.2.0/24`
           * **Public Subnet AZb:** `10.1.3.0/24`
@@ -217,12 +233,20 @@ Regardless of the chosen approach, the initial steps are the same.
 
 ### Choose Your Approach:
 
-  * [**Manual Approach (Step-by-Step)**](https://www.google.com/search?q=%232-manual-approach-step-by-step)
-  * [**Automated Approach (Using `run.sh`)**](https://www.google.com/search?q=%233-automated-approach-using-runsh)
+  * [**Manual Approach (Step-by-Step)**](#2-manual-approach-step-by-step)
+  * [**Automated Approach (Using `run.sh`)**](#3-automated-approach-using-runsh)
 
 ### 2\. Manual Approach (Step-by-Step)
 
 Follow these steps if you prefer to execute Packer, Terraform, and AWS CLI commands manually for greater control and debugging.
+
+<details> 
+<summary>
+:eyes: Veja Exemplo
+</summary>
+
+<content>
+
 
 #### a. Running Packer
 
@@ -334,9 +358,34 @@ We assume the **bastion host is already running** and that the **EFS is mounted 
     aws s3 cp "$LOCAL_FILE" "s3://$S3_TEMP_BUCKET/$S3_KEY" --region "$AWS_REGION"
     ```
 
-2.  **Move the File from S3 to EFS on the Bastion Host and Adjust Permissions**
+2. **Move the File from S3 to EFS on the Bastion Host and Adjust Permissions**
 
-    In order for instances in your Auto Scaling Group to start serving the updated content, you need to trigger an "instance refresh". This ensures that new instances (with the latest EFS content, since it is a shared file system) are launched and old ones are gradually removed.
+    Now, use `aws ssm send-command` to run commands on the bastion host. These commands will download the file from S3, move it to the correct EFS directory, and adjust its permissions and ownership.
+
+    ```bash
+    EFS_RELATIVE_PATH="html/index.html" # Adjust this to your EFS file path
+
+    # Full EFS file path
+    EFS_MOUNT_POINT_ON_EC2="/mnt/efs"
+    EFS_TARGET_FULL_PATH="${EFS_MOUNT_POINT_ON_EC2}/${PROJECT_NAME}/${EFS_RELATIVE_PATH}"
+    LOCAL_FILE_BASENAME="$(basename "$LOCAL_FILE")"
+
+    # Construct the remote command string, escaping internal double quotes for JSON. REMOTE_COMMANDS="sudo mkdir -p \\\"$(dirname "$EFS_TARGET_FULL_PATH")\\\"; \\ 
+    aws s3 cp \\\"s3://$s3_temp_bucket/$s3_key\\\" \\\"/tmp/$(basename "$local_file_full_path")\\\"; \\ 
+    sudo mv \\\"/tmp/$(basename "$local_file_full_path")\\\" \\\"$EFS_TARGET_FULL_PATH\\\"; \\ 
+    aws s3 rm \\\"s3://$s3_temp_bucket/$s3_key\\\"" 
+
+    aws ssm send-command \ 
+    --instance-ids "$BASTION_ID" \
+    --document-name "AWS-RunShellScript" \
+    --parameters "commands=[\"$REMOTE_COMMANDS\"]" \
+    --region "$region" \
+    --output text
+    ```
+
+3. **Trigger an Instance Refresh on the Auto Scaling Group (Crucial for Deployment)**
+
+    For instances in your Auto Scaling Group to start serving the updated content, you need to trigger an instance refresh. This ensures that new instances (with the latest EFS content, since it is a shared file system) are launched and old ones are gradually removed.
 
     ```bash
     cd infra
@@ -356,24 +405,6 @@ We assume the **bastion host is already running** and that the **EFS is mounted 
         echo "Instance refresh iniciado com sucesso para '$ASG_NAME'. Novas instâncias serão provisionadas para servir o conteúdo atualizado."
     fi
     ``` 
-
-3.  **Trigger an Instance Refresh on the Auto Scaling Group (Crucial for Deployment)**
-
-    When you no longer need the bastion host, remove it **by applying Terraform with `create_bastion_host` set to `false`**. This avoids taking down your entire infrastructure.
-
-    ```bash
-    cd infra # Se você não estiver no diretório infra
-
-    terraform plan \
-        -var-file="./envs/$ENVIRONMENT/terraform.tfvars" \
-        -var="account_username=$USERNAME" \
-        -var="project=$PROJECT_NAME" \
-        -var="key_name=$SSH_KEY_NAME" \
-        -var="create_bastion_host=false" \
-        -out="./plan/$ENVIRONMENT.destroy_bastion.plan"
-
-    terraform apply "./plan/$ENVIRONMENT.destroy_bastion.plan"
-    ```
 
 4.  **Destroy the Bastion Host:**
 
@@ -409,89 +440,58 @@ We assume the **bastion host is already running** and that the **EFS is mounted 
         -var="create_bastion_host=false" # Ensures the bastion (if exists) is considered for destruction
     ```
 
+</content>
+
+</details>
+
 ### 3\. Automated Approach (Using `run.sh`)
 
 The `run.sh` script centralizes and automates operations, making them simpler and less error-prone.
 
-#### a. Grant Execute Permissions to Scripts
+<details> 
+<summary>
+:eyes: Veja Exemplo
+</summary>
 
-Ensure that the main script and helper scripts have execute permissions.
+<content>
 
-```bash
-chmod +x run.sh scripts/*.sh
-```
+1. **Grant Execute Permissions to Scripts**
 
-#### b. `apply` - Build AMI with Packer and Apply Terraform Infrastructure
-
-This action executes the complete provisioning sequence.
-
-**Command:**
-
-```bash
-./run.sh apply
-```
-
-#### c. `destroy` - Destroy Terraform Infrastructure
-
-This action destroys all provisioned resources for the environment.
-
-**Command:**
-
-```bash
-./run.sh destroy
-```
-
-#### d. `up-bastion` - Create the Temporary Bastion Host
-
-Creates the configured bastion host.
-
-**Command:**
-
-```bash
-./run.sh up-bastion
-```
-
-#### e. `down-bastion` - Destroy the Temporary Bastion Host
-
-Tears down the bastion host.
-
-**Command:**
-
-```bash
-./run.sh down-bastion
-```
-
-#### f. `update-efs-file` - Update a File on EFS via Bastion Host
-
-This is the most automated action. It manages the bastion host lifecycle (creates if it doesn't exist, tears down at the end) and performs the file update.
-
-**Command:**
-
-```bash
-./run.sh update-efs-file <local_file_path> <efs_relative_path>
-```
-
-**Usage Examples:**
-
-  * **To update `index.html` located at `./src/index.html` to `/mnt/efs/${project_name}/html/index.html`:**
+    Ensure that the main script and helper scripts have execute permissions.
 
     ```bash
-    ./run.sh update-efs-file src/index.html html/index.html
+    chmod +x run.sh scripts/*.sh
     ```
 
-  * **To update `css/style.css` located at `./src/css/style.css` to `/mnt/efs/${project_name}/html/css/style.css`:**
+2. **Full provisioning (build AMI + infrastructure):**
+   ```bash
+   ./run.sh apply
+   ```
 
-    ```bash
-    ./run.sh update-efs-file src/css/style.css html/css/style.css
-    ```
+3. **Update content on EFS (reflected on all instances):**
+   ```bash
+   ./run.sh update-efs-file src/index.html html/index.html
+   # Or for entire directories:
+   ./run.sh update-efs-file src/ html/
+   ```
+   > The script creates the bastion if needed, uploads securely via temporary S3, executes remote commands via SSM, and destroys the bastion at the end.
 
-## Multi-Region and Peering
+4. **Destroy infrastructure:**
+   ```bash
+   ./run.sh destroy
+   ```
 
-The project is prepared to provision resources in multi-regions and perform VPC peering. The `10.0.0.0/16` and `10.1.0.0/16` networks are examples of distinct CIDR blocks that can be used for VPCs in different regions to facilitate peering configuration. The actual peering implementation will be added in a later phase, but the foundation for it is present in the network block definitions and environment variables.
+</content>
 
-## ©️ Copyright
+</details>
 
-**Developed by** [Andresinho20049](https://andresinho20049.com.br/)
-**Project**: *AWS Cloud Solutions Architect Study Project*
-**Description**:
-This project provides a foundational AWS infrastructure for learning and preparing for the AWS Cloud Solutions Architect certification. It focuses on modularity, scalability, and best practices for Infrastructure as Code (IaC) with Terraform, including multi-environment support and VPC peering capabilities.
+## Best Practices & Highlights
+
+- **Secure bastion lifecycle**: No open SSH ports, uses SSM, destroys host after use.
+- **End-to-end automation**: From AMI build to content deploy, all via a single script.
+- **Multi-environment**: Clear separation via workspaces and `.tfvars` files.
+- **Idempotency & consistency**: Content updates are reflected on all instances without manual deploys.
+- **Ready for multi-region & peering**: Network structure prepared for expansion.
+
+**Author:** [Andresinho20049](https://andresinho20049.com.br/)  
+**Project:** AWS Cloud Solutions Architect Study Project

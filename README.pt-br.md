@@ -1,6 +1,23 @@
-# Projeto de Estudo Terraform AWS Cloud Solutions Architect
+# Projeto: Infraestrutura AWS com Terraform – Estudo e Automação
 
-Este projeto tem como objetivo principal o estudo e a prática da criação de infraestrutura como código (IaC) utilizando Terraform para provisionar recursos na Amazon Web Services (AWS). O foco é aprofundar o conhecimento em serviços AWS essenciais para a certificação AWS Solutions Architect, garantindo que a infraestrutura seja escalável, replicável e bem organizada.
+Este repositório é um estudo prático e automatizado de provisionamento de infraestrutura AWS usando Terraform, Packer e Shell Script. O objetivo é criar um ambiente escalável, seguro e de fácil manutenção, focado em boas práticas para projetos reais e preparação para certificações AWS.
+
+## Visão Geral do Caso de Uso
+
+O projeto simula um cenário de aplicação web escalável, com múltiplos ambientes (dev, prod, staging), deploy automatizado de conteúdo estático via EFS, e ciclo de vida seguro para bastion host. O fluxo principal é:
+
+1. **Construção de AMI customizada** com Packer (NGINX, dependências, etc).
+2. **Provisionamento de infraestrutura** (VPC, EFS, ALB, ASG, Bastion) via Terraform.
+3. **Atualização de conteúdo** no EFS de forma centralizada e segura, refletindo em todas as instâncias do ASG.
+4. **Automação total** via script `run.sh`, que orquestra todas as etapas, incluindo ciclo de vida do bastion host.
+
+## Principais Componentes
+
+- **VPC Modular**: Subnets públicas/privadas, roteamento, security groups segmentados.
+- **EFS**: Armazenamento compartilhado para conteúdo web, montado em todas as instâncias do ASG.
+- **ALB & ASG**: Balanceamento de carga e escalabilidade automática.
+- **Bastion Host Temporário**: Criado sob demanda para operações administrativas (ex: atualização de arquivos no EFS), destruído automaticamente após uso.
+- **Automação via `run.sh`**: Um único ponto de entrada para build, deploy, atualização de conteúdo e teardown.
 
 ## Estrutura do Projeto
 
@@ -87,7 +104,7 @@ Responsável por criar a rede virtual na AWS, incluindo:
           * **Subnet Privada AZa:** `10.0.2.0/24`
           * **Subnet Pública AZb:** `10.0.3.0/24`
           * **Subnet Privada AZb:** `10.0.4.0/24`
-      * **Segunda Rede (para peering multi-região):** `10.1.0.0/16`
+      * **Segunda Rede (para peering multi-região):** `10.1.0.0/16` > Optional
           * **Subnet Pública AZa:** `10.1.1.0/24`
           * **Subnet Privada AZa:** `10.1.2.0/24`
           * **Subnet Pública AZb:** `10.1.3.0/24`
@@ -216,12 +233,19 @@ Independentemente da abordagem escolhida, os passos iniciais são os mesmos.
 
 ### Escolha Sua Abordagem:
 
-  * [**Abordagem Manual (Passo a Passo)**](https://www.google.com/search?q=%232-abordagem-manual-passo-a-passo)
-  * [**Abordagem Automatizada (Usando `run.sh`)**](https://www.google.com/search?q=%233-abordagem-automatizada-usando-runsh)
+  * [**Abordagem Manual (Passo a Passo)**](#2-abordagem-manual-passo-a-passo)
+  * [**Abordagem Automatizada (Usando `run.sh`)**](#3-abordagem-automatizada-usando-runsh)
 
 ### 2\. Abordagem Manual (Passo a Passo)
 
 Siga estes passos se preferir executar os comandos do Packer, Terraform e AWS CLI manualmente para maior controle e depuração.
+
+<details> 
+<summary>
+:eyes: Veja Exemplo
+</summary>
+
+<content>
 
 #### a. Executando o Packer
 
@@ -415,88 +439,58 @@ Assumiremos que o **bastion host já está em execução** e que o **EFS está m
         -var="create_bastion_host=false" # Garante que o bastion (se existir) seja considerado para destruição
     ```
 
+</content>
+
+</details>
+
 ### 3\. Abordagem Automatizada (Usando `run.sh`)
 
 O script `run.sh` centraliza e automatiza as operações, tornando-as mais simples e menos propensas a erros.
 
-#### a. Conceda Permissões de Execução aos Scripts
+<details> 
+<summary>
+:eyes: Veja Exemplo
+</summary>
 
-Certifique-se de que o script principal e os scripts auxiliares tenham permissões de execução.
+<content>
 
-```bash
-chmod +x run.sh scripts/*.sh
-```
+1. **Conceda Permissões de Execução aos Scripts**
 
-#### b. `apply` - Construir AMI com Packer e Aplicar Infraestrutura Terraform
-
-Esta ação executa a sequência completa de provisionamento.
-
-**Comando:**
-
-```bash
-./run.sh apply
-```
-
-#### c. `destroy` - Destruir Infraestrutura Terraform
-
-Esta ação destrói todos os recursos provisionados para o ambiente.
-
-**Comando:**
-
-```bash
-./run.sh destroy
-```
-
-#### d. `up-bastion` - Criar o Bastion Host Temporário
-
-Cria o bastion host configurado.
-
-**Comando:**
-
-```bash
-./run.sh up-bastion
-```
-
-#### e. `down-bastion` - Destruir o Bastion Host Temporário
-
-Derruba o bastion host.
-
-**Comando:**
-
-```bash
-./run.sh down-bastion
-```
-
-#### f. `update-efs-file` - Atualizar um Arquivo no EFS via Bastion Host
-
-Esta é a ação mais automatizada. Ela gerencia o ciclo de vida do bastion host (cria se não existe, derruba ao final) e realiza a atualização do arquivo.
-
-**Comando:**
-
-```bash
-./run.sh update-efs-file <local_file_path> <efs_relative_path>
-```
-
-**Exemplos de Uso:**
-
-  * **Para atualizar `index.html` localizado em `./src/index.html` para `/mnt/efs/${project_name}$/html/index.html`:**
+    Certifique-se de que o script principal e os scripts auxiliares tenham permissões de execução.
 
     ```bash
-    ./run.sh update-efs-file src/index.html html/index.html
+    chmod +x run.sh scripts/*.sh
     ```
 
-  * **Para atualizar `css/style.css` localizado em `./src/css/style.css` para `/mnt/efs/${project_name}/html/css/style.css`:**
+2. **Provisionamento completo (build AMI + infraestrutura):**
+   ```bash
+   ./run.sh apply
+   ```
 
-    ```bash
-    ./run.sh update-efs-file src/css/style.css html/css/style.css
-    ```
+3. **Atualizar conteúdo no EFS (refletido em todas as instâncias):**
+   ```bash
+   ./run.sh update-efs-file src/index.html html/index.html
+   # Ou para diretórios inteiros:
+   ./run.sh update-efs-file src/ html/
+   ```
+   > O script cria o bastion se necessário, faz upload seguro via S3 temporário, executa comandos remotos via SSM, e destrói o bastion ao final.
 
-## Multi-Regiões e Peering
+4. **Destruir infraestrutura:**
+   ```bash
+   ./run.sh destroy
+   ```
 
-O projeto está preparado para provisionar recursos em multi-regiões e realizar peering de VPCs. As redes `10.0.0.0/16` e `10.1.0.0/16` são exemplos de blocos CIDR distintos que podem ser usados para VPCs em diferentes regiões para facilitar a configuração de peering. A implementação do peering de fato será adicionada em uma fase posterior, mas a base para isso está presente na definição dos blocos de rede e nas variáveis de ambiente.
+</content>
 
-## ©️ Copyright
-**Developed by** [Andresinho20049](https://andresinho20049.com.br/)  
-**Project**: *AWS Cloud Solutions Architect Study Project*  
-**Description**:  
-This project provides a foundational AWS infrastructure for learning and preparing for the AWS Cloud Solutions Architect certification. It focuses on modularity, scalability, and best practices for Infrastructure as Code (IaC) with Terraform, including multi-environment support and VPC peering capabilities.
+</details>
+
+## Boas Práticas e Diferenciais
+
+- **Ciclo de vida seguro do bastion**: Não deixa portas SSH abertas, usa SSM, e destrói o host após uso.
+- **Automação ponta-a-ponta**: Do build da AMI ao deploy do conteúdo, tudo via um único script.
+- **Multi-ambiente**: Separação clara de ambientes via workspaces e arquivos `.tfvars`.
+- **Idempotência e consistência**: Atualizações de conteúdo são refletidas em todas as instâncias sem necessidade de deploy manual em cada uma.
+- **Pronto para multi-região e peering**: Estrutura de rede preparada para expansão.
+
+**Autor:** [Andresinho20049](https://andresinho20049.com.br/)  
+**Projeto:** AWS Cloud Solutions Architect Study Project
