@@ -95,6 +95,8 @@ Cada pasta de ambiente (`dev`, `prod`, `staging`, etc.) contém um arquivo `terr
 
 A infraestrutura provisionada por este projeto abrange os seguintes componentes:
 
+![Diagram](/assets/terraform-aws-with-autoscaling-course.drawio.svg)
+
 ### Módulo `vpc` (chamado como `main_vpc`)
 
 Responsável por criar a rede virtual na AWS, incluindo:

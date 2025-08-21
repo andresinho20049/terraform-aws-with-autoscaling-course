@@ -95,6 +95,8 @@ Each environment folder (`dev`, `prod`, `staging`, etc.) contains a `terraform.t
 
 The infrastructure provisioned by this project covers the following components:
 
+![Diagram](/assets/terraform-aws-with-autoscaling-course.drawio.svg)
+
 ### `vpc` Module (named as `main_vpc`)
 
 Responsible for creating the virtual network in AWS, including:
